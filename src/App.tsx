@@ -63,14 +63,15 @@ type Theme = 'dark' | 'light';
 
 export function App() {
   const { status, role, can, signOut, user } = useAuth();
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('sm_theme') as Theme) || 'dark');
+  // Light by default. Key renamed from 'sm_theme', which the old dark default auto-saved for everyone.
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('catre_theme') as Theme) || 'light');
   const [route, setRoute] = useState<Route>({ name: 'dashboard', params: {} });
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('sm_theme', theme);
+    localStorage.setItem('catre_theme', theme);
   }, [theme]);
 
   // if role loses access to current route, bounce to dashboard
