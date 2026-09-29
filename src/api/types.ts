@@ -13,7 +13,21 @@ export interface Envelope<T> { data: T; }
 export interface ListEnvelope<T> { data: T[]; next_cursor: string | null; }
 
 export interface AuthTokens { access_token: string; refresh_token: string; }
-export interface Me { id: string; tenant_id: string | null; roles: Role[]; }
+export interface Me {
+  id: string;
+  tenant_id: string | null;
+  roles: Role[];
+  // Optional profile fields returned by GET /auth/me (absent on older payloads).
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  employee?: string | null;
+  joined?: string | null;
+  title?: string | null;
+  photo_url?: string | null;
+  is_platform?: boolean;
+  tenant_name?: string | null;
+}
 
 // Runtime mirror of api/contracts.js — guarded by types.test.ts.
 export const CONTRACT_KEYS: Record<string, string[]> = {

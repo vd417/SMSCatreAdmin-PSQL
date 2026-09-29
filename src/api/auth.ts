@@ -42,6 +42,12 @@ export async function setPassword(password: string): Promise<void> {
   await request('/auth/set-password', { method: 'POST', body: { password } });
 }
 
+/** Update the signed-in user's own photo. Pass an image data URL (or http(s) URL)
+ *  to set it, or null to clear it. Backend: PATCH /me/photo (max ~300KB). */
+export async function updatePhoto(photoUrl: string | null): Promise<void> {
+  await request('/me/photo', { method: 'PATCH', body: { photo_url: photoUrl } });
+}
+
 /** Send an OTP to a registered email/phone so the user can set a new password.
  *  Throws ApiError `not_registered` (404) when the identifier has no account. */
 export async function passwordForgot(identifier: string): Promise<{ sent: boolean }> {

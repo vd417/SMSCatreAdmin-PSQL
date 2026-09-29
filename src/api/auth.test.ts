@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as client from './client';
-import { otpRequest, otpVerify, login, me, passwordForgot, passwordReset } from './auth';
+import { otpRequest, otpVerify, login, me, passwordForgot, passwordReset, updatePhoto, setPassword } from './auth';
 import { tokenStore } from '../auth/tokenStore';
 
 beforeEach(() => { localStorage.clear(); tokenStore.clear(); vi.restoreAllMocks(); });
@@ -44,5 +44,23 @@ describe('auth api', () => {
     await passwordReset('rohan@catre.io', '123456', 'supersecret');
     expect(spy).toHaveBeenCalledWith('/auth/password/reset',
       { method: 'POST', body: { identifier: 'rohan@catre.io', code: '123456', password: 'supersecret' } });
+  });
+
+  it('setPassword posts the new password', async () => {
+    const spy = vi.spyOn(client, 'request').mockResolvedValue(undefined);
+    await setPassword('brand-new-pass');
+    expect(spy).toHaveBeenCalledWith('/auth/set-password', { method: 'POST', body: { password: 'brand-new-pass' } });
+  });
+
+  it('updatePhoto patches the photo as a data URL', async () => {
+    const spy = vi.spyOn(client, 'request').mockResolvedValue(undefined);
+    await updatePhoto('data:image/jpeg;base64,abc');
+    expect(spy).toHaveBeenCalledWith('/me/photo', { method: 'PATCH', body: { photo_url: 'data:image/jpeg;base64,abc' } });
+  });
+
+  it('updatePhoto sends null to clear the photo', async () => {
+    const spy = vi.spyOn(client, 'request').mockResolvedValue(undefined);
+    await updatePhoto(null);
+    expect(spy).toHaveBeenCalledWith('/me/photo', { method: 'PATCH', body: { photo_url: null } });
   });
 });

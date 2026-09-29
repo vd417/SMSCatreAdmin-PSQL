@@ -12,6 +12,8 @@ import { BillingScreen } from './screens/BillingScreen';
 import { TeamScreen } from './screens/TeamScreen';
 import { IdentityScreen } from './screens/IdentityScreen';
 import { SupportScreen } from './screens/SupportScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 import { Icon, IconComponent } from './lib/icons';
 import { Menu, MenuItem, Avatar, NavCtx, Forbidden } from './components';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -56,7 +58,7 @@ const CRUMB: Record<string, string[]> = {
   dashboard: ['Dashboard'], clients: ['Clients'], client: ['Clients', 'Detail'], onboard: ['Clients', 'Onboard'],
   onboarding: ['Onboarding'], billing: ['Billing'], plans: ['Plans'], reports: ['Reports'], support: ['Support'],
   health: ['Support', 'System health'], team: ['Team'], settings: ['Settings'],
-  identity: ['Identity & Access'],
+  identity: ['Identity & Access'], profile: ['My profile'],
 };
 
 type Route = { name: string; params: Record<string, unknown> };
@@ -130,6 +132,8 @@ export function App() {
       case 'team':      return <TeamScreen />;
       case 'identity':  return <IdentityScreen />;
       case 'support':   return <SupportScreen />;
+      case 'profile':   return <ProfileScreen />;
+      case 'settings':  return <SettingsScreen theme={theme} setTheme={setTheme} />;
       default: {
         const title = (CRUMB[route.name] || [route.name]).join(' / ');
         return (
@@ -243,7 +247,7 @@ export function App() {
                 <span className="role-badge" style={{ marginTop: 10, display: 'inline-block', background: roleInfo.color + '22', color: roleInfo.color }}>{roleInfo.name}</span>
               </div>
               <div className="menu-sep" />
-              <MenuItem icon={Icon.user}>My profile</MenuItem>
+              <MenuItem icon={Icon.user} onClick={() => go('profile')}>My profile</MenuItem>
               {can('settings.view') && <MenuItem icon={Icon.settings} onClick={() => go('settings')}>Settings</MenuItem>}
               <MenuItem
                 icon={theme === 'dark' ? Icon.sun : Icon.moon}
