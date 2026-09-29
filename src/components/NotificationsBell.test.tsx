@@ -61,6 +61,23 @@ describe('NotificationsBell', () => {
     expect(markRead).not.toHaveBeenCalled();
   });
 
+  it('hides notices that belong to a school tenant', async () => {
+    listState.data = [
+      note({ id: 'n1', tenant_id: 't1', title: 'Marks published — IX-A Mathematics' }),
+      note({ id: 'n2', tenant_id: null, title: 'Trial ending' }),
+    ];
+    await renderBell();
+    fireEvent.click(screen.getByTitle('Notifications'));
+    expect(screen.queryByText('Marks published — IX-A Mathematics')).not.toBeInTheDocument();
+    expect(screen.getByText('Trial ending')).toBeInTheDocument();
+  });
+
+  it('ignores school notices when counting unread', async () => {
+    listState.data = [note({ id: 'n1', tenant_id: 't1', unread: true })];
+    const { container } = await renderBell();
+    expect(container.querySelector('.notif-dot')).toBeNull();
+  });
+
   it('shows an empty state when there are no notifications', async () => {
     listState.data = [];
     await renderBell();

@@ -7,7 +7,11 @@ import { useNotifications, useMarkNotificationsRead } from '../api/hooks/useNoti
 export function NotificationsBell(): React.ReactElement {
   const { data } = useNotifications();
   const markRead = useMarkNotificationsRead();
-  const items = data ?? [];
+  // /v1/notifications is the school app's feed, and the platform role bypasses the
+  // Notifications RLS policy — so it hands an operator every school's broadcasts
+  // (marks published, homework set). Those carry a tenant_id; platform-level notices
+  // do not. Operators run the business, not a classroom, so only the latter belong here.
+  const items = (data ?? []).filter(n => n.tenant_id === null);
   const unread = items.filter(n => n.unread).length;
 
   return (
