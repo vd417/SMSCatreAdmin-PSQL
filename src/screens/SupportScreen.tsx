@@ -100,9 +100,9 @@ export function SupportScreen(): React.ReactElement {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
+      <div className="split">
         <div>
-          <div className="row jb gap12" style={{ marginBottom: 14 }}>
+          <div className="row jb gap12 fw" style={{ marginBottom: 14 }}>
             <div className="row gap8" style={{ flexWrap: 'wrap' }}>
               {([
                 ['open', 'Open'],
@@ -116,7 +116,7 @@ export function SupportScreen(): React.ReactElement {
                 </button>
               ))}
             </div>
-            <div className="input-group" style={{ width: 200 }}>
+            <div className="input-group" style={{ width: '100%', maxWidth: 200 }}>
               <Icon.search size={14} />
               <input placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} />
             </div>

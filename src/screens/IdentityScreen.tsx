@@ -8,6 +8,7 @@ import { QueryBoundary } from '../components/QueryBoundary';
 import { useTeam } from '../api/hooks/useTeam';
 import { useInviteTeamMember, useUpdateTeamMember } from '../api/hooks/useTeamMutations';
 import type { ApiError } from '../api/ApiError';
+import type { InviteTeamBody } from '../api/team';
 import type { Role, TeamMember } from '../api/types';
 
 type Tab = 'users' | 'roles' | 'matrix';
@@ -85,7 +86,7 @@ export function IdentityScreen(): React.ReactElement {
     return map;
   }, []);
 
-  const onInvite = (body: { name: string; email: string; role: Role }) => {
+  const onInvite = (body: InviteTeamBody) => {
     invite.mutate(body, {
       onSuccess: (m) => {
         toast({ kind: 'success', title: 'Identity created', msg: `${m.name} · ${ROLES[m.role].name}` });
@@ -159,7 +160,7 @@ export function IdentityScreen(): React.ReactElement {
             </button>
           ))}
         </div>
-        <select className="input" style={{ width: 160 }} value={roleF} onChange={e => setRoleF(e.target.value)}>
+        <select className="input" style={{ width: '100%', maxWidth: 160 }} value={roleF} onChange={e => setRoleF(e.target.value)}>
           <option value="all">All roles</option>
           {ALL_ROLES.map(r => <option key={r} value={r}>{ROLES[r].name}</option>)}
         </select>
@@ -167,7 +168,7 @@ export function IdentityScreen(): React.ReactElement {
 
       {tab === 'users' && (
         <>
-          <input className="input" style={{ width: 280, marginBottom: 12 }} placeholder="Search by ID, employee id, name, email…"
+          <input className="input" style={{ width: '100%', maxWidth: 280, marginBottom: 12 }} placeholder="Search by ID, employee id, name, email…"
             value={search} onChange={e => setSearch(e.target.value)} />
           <QueryBoundary isLoading={q.isLoading} isError={q.isError} error={q.error}>
             {filteredUsers.length === 0 ? (
@@ -206,7 +207,7 @@ export function IdentityScreen(): React.ReactElement {
                         <td className="tiny muted">{fmtWhen(m.last_login)}</td>
                         {manage && (
                           <td style={{ textAlign: 'right' }}>
-                            <Menu>
+                            <Menu trigger={<Btn variant="ghost" size="sm" icon={Icon.moreH} />}>
                               {allowedRoles.map(r => (
                                 <MenuItem key={r} onClick={() => setRole(m, r)}>
                                   {m.role === r ? '✓ ' : ''}{ROLES[r].name}

@@ -128,7 +128,7 @@ export function InviteTeamModal({ open, onClose, onSubmit, pending, allowedRoles
               <input className="input" type="email" value={email} onChange={ev => setEmail(ev.target.value)} placeholder="name@catre.app" />
               {errors.email && <span className="err">{errors.email}</span>}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="grid-auto cols-200">
               <div className="field">
                 <label>Employee ID</label>
                 <input className="input" value={employeeId} onChange={ev => setEmployeeId(ev.target.value)} placeholder="e.g. EMP-1042" />

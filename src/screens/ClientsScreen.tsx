@@ -157,12 +157,12 @@ export function ClientsScreen(): React.ReactElement {
             </button>
           ))}
         </div>
-        <div className="row gap8">
-          <div className="input-group" style={{ width: 220 }}>
+        <div className="row gap8 fw">
+          <div className="input-group" style={{ width: '100%', maxWidth: 220 }}>
             <Icon.search />
             <input placeholder="Search school or owner…" value={q} onChange={e => setQ(e.target.value)} />
           </div>
-          <select className="select" style={{ width: 130, height: 36 }} value={planF} onChange={e => setPlanF(e.target.value)}>
+          <select className="select" style={{ width: '100%', maxWidth: 130, height: 36 }} value={planF} onChange={e => setPlanF(e.target.value)}>
             <option value="all">All plans</option>
             {planOptions.map(([tier, name]) => <option key={tier} value={tier}>{name}</option>)}
           </select>

@@ -15,6 +15,7 @@ import { SupportScreen } from './screens/SupportScreen';
 import { Icon, IconComponent } from './lib/icons';
 import { Menu, MenuItem, Avatar, NavCtx, Forbidden } from './components';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { NotificationsBell } from './components/NotificationsBell';
 import { ROLES } from './auth/rbac';
 
 /* ---- nav structure (ported from app.jsx) ---- */
@@ -61,6 +62,22 @@ const CRUMB: Record<string, string[]> = {
 type Route = { name: string; params: Record<string, unknown> };
 type Theme = 'dark' | 'light';
 
+/* Between the drawer breakpoint and this width the rail is the only sidebar that
+   leaves the content a usable column, so the shell collapses itself. Above it the
+   choice is the operator's. Keep in sync with the 1100px drawer breakpoint in styles.css. */
+const AUTO_COLLAPSE = '(max-width: 1319px)';
+
+function useAutoCollapse(setCollapsed: (v: boolean) => void) {
+  useEffect(() => {
+    const mq = window.matchMedia(AUTO_COLLAPSE);
+    const apply = (matches: boolean) => setCollapsed(matches);
+    apply(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => apply(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [setCollapsed]);
+}
+
 export function App() {
   const { status, role, can, signOut, user } = useAuth();
   // Light by default. Key renamed from 'sm_theme', which the old dark default auto-saved for everyone.
@@ -68,6 +85,7 @@ export function App() {
   const [route, setRoute] = useState<Route>({ name: 'dashboard', params: {} });
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
+  useAutoCollapse(setCollapsed);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -202,10 +220,7 @@ export function App() {
               {React.createElement(theme === 'dark' ? Icon.sun : Icon.moon, { size: 17 })}
             </button>
 
-            <button className="btn btn-ghost btn-icon" title="Notifications" style={{ position: 'relative' }}>
-              <Icon.bell size={17} />
-              <span style={{ position: 'absolute', top: 7, right: 8, width: 7, height: 7, borderRadius: '50%', background: 'var(--red)', border: '1.5px solid var(--bg)' }} />
-            </button>
+            <NotificationsBell />
 
             {/* ---- account menu ---- */}
             <Menu

@@ -76,8 +76,8 @@ export function ReportsScreen(): React.ReactElement {
                 ))}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div className="card">
+              <div className="dash-row" style={{ marginBottom: 16 }}>
+                <div className="card dash-grow-16">
                   <div className="card-head"><div className="f1"><h3>Revenue trend</h3><div className="sub">MRR, last 12 months</div></div></div>
                   <div className="card-pad">
                     {allZero(q.data.revenue_series)

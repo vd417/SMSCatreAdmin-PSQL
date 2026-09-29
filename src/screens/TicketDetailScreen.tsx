@@ -43,7 +43,7 @@ export function TicketDetailScreen({ id, onBack }: { id: string; onBack: () => v
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16, alignItems: 'start' }}>
+            <div className="split aside-280">
               {/* thread */}
               <div className="card">
                 <div style={{ padding: '6px 0' }}>

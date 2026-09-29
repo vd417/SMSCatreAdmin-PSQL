@@ -32,11 +32,10 @@ describe('OnboardWizard', () => {
     expect(screen.getByText('School name is required')).toBeInTheDocument();
   });
 
-  it('labels location as City (not Country) and adds Address, Status, relabeled size', () => {
+  it('labels location as City (not Country) and adds Address, relabeled size', () => {
     renderWizard();
     expect(screen.getByText('City')).toBeInTheDocument();
     expect(screen.getByText('Address')).toBeInTheDocument();
-    expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('School size (students)')).toBeInTheDocument();
     expect(screen.queryByText('Country')).toBeNull();
     expect(screen.queryByText('Approx. size')).toBeNull();

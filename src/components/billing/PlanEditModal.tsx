@@ -152,7 +152,7 @@ export function PlanEditModal({ plan, onClose, onSave }: Props): React.ReactElem
 
       <div className="modal-body">
         {/* Name + Band */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+        <div className="grid-auto cols-200">
           <div className="field">
             <label>Plan name</label>
             <input className="input" value={p.name} style={errStyle('name')} onChange={e => set({ name: e.target.value })} />
@@ -186,7 +186,7 @@ export function PlanEditModal({ plan, onClose, onSave }: Props): React.ReactElem
             {errors.price && <span className="err">{errors.price}</span>}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 360 }}>
+          <div className="grid-auto cols-160" style={{ maxWidth: 360 }}>
             <div className="field">
               <label>₹ / student / mo</label>
               <input {...numProps(p.per_student, v => set({ per_student: v }), 'per_student')} />
@@ -212,7 +212,7 @@ export function PlanEditModal({ plan, onClose, onSave }: Props): React.ReactElem
           <span className="tiny muted">{p.offer ? 'Offer attached' : 'No active offer'}</span>
         </div>
         {p.offer && (
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginTop: 10 }}>
+          <div className="grid-auto cols-200" style={{ marginTop: 10 }}>
             <div className="field">
               <label>Offer label</label>
               <input
@@ -232,7 +232,7 @@ export function PlanEditModal({ plan, onClose, onSave }: Props): React.ReactElem
         )}
 
         {/* Availability + Visibility */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginTop: 16 }}>
+        <div className="grid-auto cols-200" style={{ marginTop: 16 }}>
           <div>
             <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 8 }}>
               Availability
@@ -255,7 +255,7 @@ export function PlanEditModal({ plan, onClose, onSave }: Props): React.ReactElem
         </div>
 
         {/* Limits */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginTop: 16 }}>
+        <div className="grid-auto cols-160" style={{ marginTop: 16 }}>
           {(['students', 'staff', 'storage_gb'] as const).map(k => (
             <div key={k} className="field">
               <label>{k === 'storage_gb' ? 'Storage (GB)' : k[0].toUpperCase() + k.slice(1)}</label>

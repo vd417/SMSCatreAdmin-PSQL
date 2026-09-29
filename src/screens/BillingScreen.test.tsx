@@ -5,6 +5,7 @@ import { BillingScreen } from './BillingScreen';
 vi.mock('../components/billing/PlansTab', () => ({ PlansTab: () => <div>PLANS_TAB</div> }));
 vi.mock('../components/billing/SubscriptionsTab', () => ({ SubscriptionsTab: () => <div>SUBS_TAB</div> }));
 vi.mock('../components/billing/InvoicesTab', () => ({ InvoicesTab: () => <div>INV_TAB</div> }));
+vi.mock('../components/billing/UpgradeRequestsTab', () => ({ UpgradeRequestsTab: () => <div>UPGRADES_TAB</div> }));
 vi.mock('../api/hooks/useInvoices', () => ({ useInvoices: () => ({ data: { pages: [{ data: [], next_cursor: null }] } }) }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: () => true }) }));
 

@@ -226,7 +226,7 @@ export function OnboardWizard(): React.ReactElement {
       </button>
       <h1 className="page-title" style={{ marginBottom: 22 }}>Onboard a new client</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '210px 1fr', gap: 28, alignItems: 'start' }}>
+      <div className="split split-left aside-210" style={{ gap: 28 }}>
         <div className="fc gap2">
           {steps.map((s, i) => (
             <button key={i} onClick={() => i < step && setStep(i)} className="row gap10"
@@ -249,7 +249,7 @@ export function OnboardWizard(): React.ReactElement {
               <div className="fc gap16">
                 <Field label="School name" k="name" form={form} set={set} errors={errors} placeholder="e.g. Greenwood High" />
                 <Field label="Workspace slug" k="slug" form={form} set={set} errors={errors} prefix="catre.app/" hint="Auto-generated from the name; editable." />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="grid-auto cols-200">
                   <div className="field"><label>City</label>
                     <select className="select" value={form.city} onChange={e => set('city', e.target.value)}>
                       {CITIES.map(c => <option key={c}>{c}</option>)}

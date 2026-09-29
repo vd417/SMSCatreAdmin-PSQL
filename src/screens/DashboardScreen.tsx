@@ -60,8 +60,8 @@ export function DashboardScreen(): React.ReactElement {
               ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16, marginBottom: 16 }}>
-              <div className="card">
+            <div className="dash-row" style={{ marginBottom: 16 }}>
+              <div className="card dash-grow-16">
                 <div className="card-head">
                   <div className="f1"><h3>Recurring revenue</h3><div className="sub">MRR over the last 12 months</div></div>
                   <div className="row gap8">
@@ -83,7 +83,7 @@ export function DashboardScreen(): React.ReactElement {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 16, marginBottom: 16 }}>
+            <div className="dash-row" style={{ marginBottom: 16 }}>
               <div className="card">
                 <div className="card-head"><div className="f1"><h3>New signups</h3><div className="sub">Per month</div></div></div>
                 <div className="card-pad">
@@ -93,7 +93,7 @@ export function DashboardScreen(): React.ReactElement {
                 </div>
               </div>
 
-              <div className="card">
+              <div className="card dash-grow-13">
                 <div className="card-head">
                   <div className="f1"><h3>Usage alerts</h3><div className="sub">Clients near a plan limit</div></div>
                   {q.data.usage_alerts.length > 0 && <span className="badge badge-amber">{q.data.usage_alerts.length} flagged</span>}

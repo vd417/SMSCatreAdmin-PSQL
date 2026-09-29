@@ -137,17 +137,22 @@ ul { list-style: none; }
 /* ============================================================
    APP SHELL
    ============================================================ */
-.app { display: grid; grid-template-columns: auto 1fr; height: 100%; background: var(--bg-grad); }
+/* Sidebar rail widths live here only — the shell reads them, pages never offset by hand. */
+:root { --sb-w: 248px; --sb-w-collapsed: 68px; }
+
+/* minmax(0, 1fr): without the 0 minimum the main track floors at its content's min-content
+   width, so a wide table or chart widens the grid instead of scrolling inside it. */
+.app { display: grid; grid-template-columns: auto minmax(0, 1fr); height: 100%; background: var(--bg-grad); }
 
 .sidebar {
-  width: 248px; height: 100%; flex-shrink: 0;
+  width: var(--sb-w); height: 100%; flex-shrink: 0;
   background: var(--sidebar-grad, var(--sidebar));
   border-right: 1px solid var(--border-soft);
   display: flex; flex-direction: column;
   transition: width 0.22s cubic-bezier(.4,0,.2,1);
   overflow: hidden;
 }
-.sidebar.collapsed { width: 68px; }
+.sidebar.collapsed { width: var(--sb-w-collapsed); }
 
 .brand { display: flex; align-items: center; gap: 11px; padding: 18px 18px 14px; height: 60px; flex-shrink: 0; }
 .brand-mark {
@@ -198,7 +203,9 @@ ul { list-style: none; }
   background: color-mix(in srgb, var(--bg) 70%, transparent);
   backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 20;
 }
-.crumbs { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-3); min-width: 0; }
+.crumbs { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-3); min-width: 0; overflow: hidden; white-space: nowrap; }
+.crumbs > span { flex-shrink: 0; }
+.crumbs > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .crumbs b { color: var(--text); font-weight: 600; }
 .crumbs .sep { color: var(--text-faint); }
 
@@ -207,7 +214,7 @@ ul { list-style: none; }
 .search-box {
   display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 12px;
   background: var(--surface-2); border: 1px solid var(--border-soft);
-  border-radius: 9px; color: var(--text-3); width: 260px; transition: border 0.12s, box-shadow 0.12s;
+  border-radius: 9px; color: var(--text-3); flex: 0 1 260px; min-width: 140px; transition: border 0.12s, box-shadow 0.12s;
 }
 .search-box:focus-within { border-color: var(--accent-line); box-shadow: var(--ring); }
 .search-box input { flex: 1; border: none; outline: none; background: none; font-size: 13px; color: var(--text); }
@@ -218,10 +225,12 @@ ul { list-style: none; }
 .page-wide { max-width: 1500px; }
 
 .page-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
-.page-head .ph-text { flex: 1; min-width: 0; }
+/* basis, not 0: the title keeps a readable column and the actions wrap
+   to their own line rather than crushing it. */
+.page-head .ph-text { flex: 1 1 260px; min-width: 0; }
 .page-title { font-size: 26px; font-weight: 750; letter-spacing: -0.03em; color: var(--text); }
 .page-desc { color: var(--text-3); font-size: 14px; margin-top: 4px; font-weight: 500; }
-.page-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.page-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; flex-wrap: wrap; }
 
 /* ============================================================
    PRIMITIVES
@@ -504,6 +513,67 @@ table.table {
 .forbidden-note { font-size: 11.5px; color: var(--text-faint); display: inline-flex; align-items: center; gap: 5px; }
 .forbidden-note svg { width: 12px; height: 12px; }
 
+/* ============================================================
+   RESPONSIVE LAYOUT UTILITIES
+   One shared set of rules every screen uses, so a page adapts to the
+   width it is actually given instead of hard-coding its own columns.
+   ============================================================ */
+
+/* main column + fixed-width aside; the aside drops underneath once
+   there is no longer room for both. */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) var(--aside, 320px); gap: 16px; align-items: start; }
+.split.split-left { grid-template-columns: var(--aside, 320px) minmax(0, 1fr); }
+.split > * { min-width: 0; }
+.aside-210 { --aside: 210px; }
+.aside-280 { --aside: 280px; }
+
+/* columns that re-flow on the width available to them, no media query */
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--col, 220px), 1fr)); gap: var(--gap, 14px); align-items: start; }
+.grid-auto > * { min-width: 0; }
+.cols-160 { --col: 160px; }
+.cols-200 { --col: 200px; }
+.cols-240 { --col: 240px; }
+.cols-260 { --col: 260px; }
+
+/* a px width on a filter input is a maximum, never a floor */
+.field-fluid { width: 100%; }
+
+.tabs { flex-wrap: wrap; }
+.page-head { flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  /* one column: the aside is no longer worth its own track */
+  .split, .split.split-left { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* topbar notifications */
+.notif-btn { position: relative; }
+.notif-dot {
+  position: absolute; top: 7px; right: 8px; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--red); border: 1.5px solid var(--bg);
+}
+.notif-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 10px; }
+.notif-head b { font-size: 13px; font-weight: 650; }
+.notif-empty { padding: 12px 10px 14px; }
+.notif-list { max-height: 340px; overflow-y: auto; }
+.notif-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border-radius: 7px; }
+.notif-item + .notif-item { border-top: 1px solid var(--border-soft); border-radius: 0; }
+.notif-item-text { flex: 1; min-width: 0; }
+.notif-title { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.notif-item.unread .notif-title { color: var(--text); }
+.notif-item.unread .notif-title::before {
+  content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); margin-right: 7px; vertical-align: middle;
+}
+.notif-time { flex-shrink: 0; white-space: nowrap; }
+
+/* Dashboard two-up rows. Flex + wrap reflows off the row's own available width, so the
+   cards re-column when the sidebar expands as well as when the viewport shrinks. */
+.dash-row { display: flex; flex-wrap: wrap; gap: 16px; }
+.dash-row > * { flex: 1 1 320px; min-width: 0; }
+.dash-row > .dash-grow-16 { flex-grow: 1.6; flex-basis: 420px; }
+.dash-row > .dash-grow-13 { flex-grow: 1.3; flex-basis: 380px; }
+
 /* charts */
 .chart-svg { width: 100%; overflow: visible; }
 .chart-grid line { stroke: var(--border-soft); stroke-width: 1; }
@@ -515,14 +585,42 @@ table.table {
 .legend-item .lg-val { margin-left: auto; font-weight: 650; font-variant-numeric: tabular-nums; }
 
 /* responsive */
+.mobile-only { display: none; }
+
 @media (max-width: 1100px) {
-  .sidebar { position: fixed; z-index: 60; box-shadow: var(--shadow-lg); }
-  .app { grid-template-columns: 1fr; }
+  /* Sidebar becomes an off-canvas drawer: out of flow, so .main owns the full width
+     whether the drawer is open or shut, and .open slides it in over the content. */
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .sidebar {
+    position: fixed; top: 0; left: 0; z-index: 60;
+    width: var(--sb-w); box-shadow: var(--shadow-lg);
+    transform: translateX(-100%); visibility: hidden;
+    transition: transform 0.22s cubic-bezier(.4,0,.2,1), visibility 0s linear 0.22s;
+  }
+  /* the collapsed rail is a desktop affordance; as a drawer it always opens full width */
+  .sidebar.collapsed { width: var(--sb-w); }
+  .sidebar.collapsed .nav-group-label { opacity: 1; height: auto; padding: 14px 10px 6px; }
+  .sidebar.collapsed .nav-item-label, .sidebar.collapsed .nav-badge { opacity: 1; pointer-events: auto; }
+  .sidebar.open { transform: none; visibility: visible; transition: transform 0.22s cubic-bezier(.4,0,.2,1), visibility 0s linear 0s; }
+  .sidebar-foot { display: none; }
   .scrim { position: fixed; inset: 0; background: var(--overlay); z-index: 55; }
+  .mobile-only { display: inline-flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar.open { transition: none; }
 }
 @media (max-width: 720px) {
   .search-box { display: none; }
+  .topbar { padding: 0 14px; gap: 10px; }
   .page { padding: 18px 16px 64px; }
+}
+@media (max-width: 480px) {
+  .page { padding: 16px 12px 56px; }
+  .page-title { font-size: 22px; }
+  .card-head { padding: 13px 14px; }
+  .card-pad { padding: 14px; }
+  /* card headings may wrap rather than force the card wider than the screen */
+  .card-head h3 { white-space: normal; }
 }
 
 /* utility spacing */

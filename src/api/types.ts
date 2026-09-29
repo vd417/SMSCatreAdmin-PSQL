@@ -1,5 +1,6 @@
 export type Role = 'owner' | 'admin' | 'support' | 'sales' | 'finance' | 'analyst';
-export type ClientStatus = 'trial' | 'active' | 'past_due' | 'suspended' | 'cancelled';
+export type ClientStatus =
+  | 'trial' | 'active' | 'past_due' | 'hold' | 'deactivated' | 'suspended' | 'cancelled';
 export type Tier = 'trial' | 'silver' | 'gold' | 'platinum' | 'metered' | 'exclusive';
 
 export interface ErrorBody {
@@ -89,7 +90,17 @@ export interface Client {
   contact_phone: string | null; address: string | null;
 }
 
-export type ClientStatusAction = 'start_trial' | 'activate' | 'suspend' | 'reinstate' | 'cancel';
+export type ClientStatusAction =
+  | 'start_trial' | 'activate' | 'hold' | 'release' | 'deactivate' | 'reactivate'
+  | 'suspend' | 'reinstate' | 'cancel';
+
+/** GET /v1/notifications — Comms `NotificationResponse`. */
+export interface NotificationItem {
+  id: string; tenant_id: string | null;
+  icon: string | null; tone: string | null;
+  title: string; body: string | null; time: string | null;
+  unread: boolean;
+}
 
 export interface Plan {
   id: string; name: string; tier: Tier; pricing: string; price: number;

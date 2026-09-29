@@ -27,7 +27,8 @@ describe('ClientActions', () => {
   it('hides delete when school has students or staff', () => {
     const filled = { id: 'c1', status: 'active', plan_id: 'pl_gold', name: 'Greenwood', students_count: 12, staff_count: 0 } as Client;
     renderWithToast(<ClientActions client={filled} />);
-    expect(screen.getByText('Suspend')).toBeInTheDocument();
+    expect(screen.getByText('Hold school')).toBeInTheDocument();
+    expect(screen.getByText('Deactivate')).toBeInTheDocument();
     expect(screen.getByText('Cancel')).toBeInTheDocument();
     expect(screen.queryByText('Delete')).not.toBeInTheDocument();
     expect(screen.queryByText('Impersonate')).not.toBeInTheDocument();
@@ -35,7 +36,7 @@ describe('ClientActions', () => {
 
   it('hides actions the role cannot perform', async () => {
     vi.resetModules();
-    vi.doMock('../auth/AuthContext', () => ({ useAuth: () => ({ can: (p: string) => p !== 'clients.suspend' }) }));
+    vi.doMock('../auth/AuthContext', () => ({ useAuth: () => ({ can: (p: string) => p !== 'clients.hold' }) }));
     vi.doMock('../api/hooks/useClientMutations', () => ({
       useSetClientStatus: () => ({ mutate: vi.fn(), isPending: false }),
       useChangeClientPlan: () => ({ mutate: vi.fn(), isPending: false }),
@@ -45,6 +46,7 @@ describe('ClientActions', () => {
     const { ClientActions: Gated } = await import('./ClientActions');
     const client = { id: 'c1', status: 'active', plan_id: 'pl_gold', name: 'Greenwood', students_count: 1, staff_count: 1 } as Client;
     renderWithToast(<Gated client={client} />);
-    expect(screen.queryByText('Suspend')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hold school')).not.toBeInTheDocument();
+    expect(screen.getByText('Deactivate')).toBeInTheDocument();
   });
 });

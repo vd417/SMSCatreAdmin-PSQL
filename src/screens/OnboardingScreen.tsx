@@ -188,7 +188,7 @@ export function OnboardingScreen() {
       </div>
 
       <QueryBoundary isLoading={board.isLoading} isError={board.isError} error={board.error}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, alignItems: 'start' }}>
+        <div className="grid-auto cols-240">
           {COLS.map(col => (
             <div
               key={col.key}

@@ -148,7 +148,7 @@ export function TeamScreen(): React.ReactElement {
             </button>
           ))}
         </div>
-        <input className="input" style={{ width: 240 }} placeholder="Search name, email, employee id…"
+        <input className="input" style={{ width: '100%', maxWidth: 240 }} placeholder="Search name, email, employee id…"
           value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
@@ -201,7 +201,7 @@ export function TeamScreen(): React.ReactElement {
                         <td className="tiny muted">{fmtWhen(m.joined)}</td>
                         {manage && (
                           <td style={{ textAlign: 'right' }}>
-                            <Menu>
+                            <Menu trigger={<Btn variant="ghost" size="sm" icon={Icon.moreH} />}>
                               <MenuItem onClick={() => { setUploadFor(m.id); docInputRef.current?.click(); }}>
                                 Add document
                               </MenuItem>
