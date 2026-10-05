@@ -157,7 +157,7 @@ export function App() {
         {/* ---- Sidebar ---- */}
         <aside className={'sidebar' + (collapsed ? ' collapsed' : '') + (mobileNav ? ' open' : '')}>
           <div className="brand">
-            <div className="brand-mark">C</div>
+            <img className="brand-logo" src="/catre-emblem.png" alt="Catre" width={32} height={32} />
             {!collapsed && (
               <div style={{ minWidth: 0 }}>
                 <div className="brand-name">Catre</div>

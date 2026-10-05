@@ -161,6 +161,11 @@ ul { list-style: none; }
   display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 15px;
   box-shadow: 0 4px 12px -2px var(--accent-line);
 }
+.brand-logo {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  object-fit: contain; background: #fff; padding: 2px;
+  box-shadow: 0 4px 12px -2px var(--accent-line);
+}
 .brand-name { font-weight: 700; font-size: 15.5px; letter-spacing: -0.02em; white-space: nowrap; color: var(--text); }
 .brand-name b { color: var(--accent-text); }
 .brand-sub { font-size: 10.5px; color: var(--text-3); white-space: nowrap; letter-spacing: 0.02em; }
