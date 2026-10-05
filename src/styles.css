@@ -162,7 +162,7 @@ ul { list-style: none; }
   box-shadow: 0 4px 12px -2px var(--accent-line);
 }
 .brand-logo {
-  width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+  width: 52px; height: 52px; border-radius: 12px; flex-shrink: 0;
   object-fit: contain; background: #fff; padding: 3px;
   box-shadow: 0 4px 12px -2px var(--accent-line);
 }
