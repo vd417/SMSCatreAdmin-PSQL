@@ -82,7 +82,7 @@ export function AuthScreen(): React.ReactElement {
         {/* left: brand panel */}
         <div className="login-brand">
           <div className="row gap10" style={{ marginBottom: 'auto' }}>
-            <img className="brand-logo" src="/catre-emblem.png" alt="Catre" style={{ width: 34, height: 34 }} />
+            <img className="brand-logo" src="/catre-emblem.png" alt="Catre" style={{ width: 48, height: 48 }} />
             <div>
               <div className="brand-name" style={{ fontSize: 16 }}>Catre</div>
               <div className="brand-sub">Operator Control Plane</div>
