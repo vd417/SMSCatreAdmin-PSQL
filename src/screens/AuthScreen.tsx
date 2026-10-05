@@ -77,7 +77,7 @@ export function AuthScreen(): React.ReactElement {
   );
 
   return (
-    <div style={{ minHeight: '100%', display: 'flex', overflowY: 'auto', padding: 24, background: 'var(--bg-grad)' }}>
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 24, background: 'var(--bg-grad)' }}>
       <div className="login-card" style={{ margin: 'auto' }}>
         {/* left: brand panel */}
         <div className="login-brand">
@@ -199,6 +199,15 @@ export function AuthScreen(): React.ReactElement {
           )}
         </div>
       </div>
+      <footer className="login-copyright">
+        <strong>© 2026 Catre Technology. All Rights Reserved.</strong>
+        <span>
+          This software, source code, design, graphics, logos, documentation, and related materials are the
+          exclusive property of Catre Technology. Unauthorized copying, reproduction, modification, distribution,
+          or use of any part of this project without prior written permission from Catre Technology is strictly
+          prohibited.
+        </span>
+      </footer>
     </div>
   );
 }

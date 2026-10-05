@@ -166,6 +166,12 @@ ul { list-style: none; }
   object-fit: contain; background: #fff; padding: 3px;
   box-shadow: 0 4px 12px -2px var(--accent-line);
 }
+.login-copyright {
+  margin: 20px auto 2px; max-width: 580px; text-align: center; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 11px; line-height: 1.5; color: var(--text-3);
+}
+.login-copyright strong { font-weight: 650; font-size: 11.5px; color: var(--text-2); }
 .brand-name { font-weight: 700; font-size: 15.5px; letter-spacing: -0.02em; white-space: nowrap; color: var(--text); }
 .brand-name b { color: var(--accent-text); }
 .brand-sub { font-size: 10.5px; color: var(--text-3); white-space: nowrap; letter-spacing: 0.02em; }
