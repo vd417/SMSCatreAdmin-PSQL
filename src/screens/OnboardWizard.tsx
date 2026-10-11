@@ -4,6 +4,7 @@ import { Icon } from '../lib/icons';
 import { usePlans } from '../api/hooks/usePlans';
 import { useTeam } from '../api/hooks/useTeam';
 import { useCreateClient } from '../api/hooks/useClientMutations';
+import { fileToIdProof, ID_PROOF_ACCEPT } from '../api/team';
 import type { ApiError } from '../api/ApiError';
 import type { Plan, CreateClientBody, ClientStatus, Client } from '../api/types';
 import {
@@ -17,13 +18,22 @@ import {
 type PayChoice = 'trial' | 'offline' | 'online';
 
 type Form = {
-  name: string; slug: string; city: string; address: string; size: string; status: ClientStatus;
+  name: string; slug: string; state: string; address: string; size: string; status: ClientStatus;
   adminName: string; adminEmail: string; adminPhone: string;
+  idProofType: '' | 'pan' | 'aadhaar'; idProofUrl: string;
   plan_id: string; trial: number; csm: string;
   payChoice: PayChoice;
 };
 
-const CITIES = ['Mumbai, MH', 'New Delhi, DL', 'Bengaluru, KA', 'Hyderabad, TS', 'Chennai, TN', 'Pune, MH', 'Kolkata, WB', 'Ahmedabad, GJ'];
+// All 28 Indian states + 8 union territories, alphabetical.
+const STATES = [
+  'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
+  'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa',
+  'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya',
+  'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+];
 const SIZES = ['Under 200', '200–500', '500–1,200', '1,200–5,000', '5,000+'];
 const TRIAL_PRESETS: { days: number; note: string }[] = [
   { days: 7, note: 'week' }, { days: 14, note: 'default' }, { days: 30, note: 'month' },
@@ -62,10 +72,12 @@ export function OnboardWizard(): React.ReactElement {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paying, setPaying] = useState(false);
   const [form, setForm] = useState<Form>({
-    name: '', slug: '', city: 'Mumbai, MH', address: '', size: '', status: 'trial',
-    adminName: '', adminEmail: '', adminPhone: '', plan_id: plans[0]?.id ?? '', trial: 14, csm: '',
+    name: '', slug: '', state: '', address: '', size: '', status: 'trial',
+    adminName: '', adminEmail: '', adminPhone: '', idProofType: '', idProofUrl: '',
+    plan_id: plans[0]?.id ?? '', trial: 14, csm: '',
     payChoice: 'trial',
   });
+  const [idProofName, setIdProofName] = useState('');
   const set = (k: keyof Form, v: string | number) =>
     setForm(d => ({ ...d, [k]: v, ...(k === 'name' ? { slug: String(v).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') } : {}) }));
 
@@ -79,10 +91,12 @@ export function OnboardWizard(): React.ReactElement {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (step === 0) { if (!form.name.trim()) e.name = 'School name is required'; if (!form.slug.trim()) e.slug = 'Slug is required'; }
+    if (step === 0) { if (!form.name.trim()) e.name = 'School name is required'; if (!form.slug.trim()) e.slug = 'Workspace URL is required'; }
     if (step === 1) {
       if (!form.adminName.trim()) e.adminName = 'Admin name is required';
       if (!/^[^@]+@[^@]+\.[^@]+$/.test(form.adminEmail)) e.adminEmail = 'Valid email required';
+      if (!form.idProofType) e.idProofType = 'ID type is required';
+      if (!form.idProofUrl) e.idProofUrl = 'ID proof document is required';
     }
     if (step === 2) {
       if (!form.plan_id) e.plan_id = 'Select a plan';
@@ -189,9 +203,10 @@ export function OnboardWizard(): React.ReactElement {
 
   const submit = () => {
     const body: CreateClientBody = {
-      name: form.name, slug: form.slug, country: form.city, size: form.size,
+      name: form.name, slug: form.slug, country: form.state, size: form.size,
       address: form.address, status: 'trial',
       admin_name: form.adminName, admin_email: form.adminEmail, admin_phone: form.adminPhone,
+      id_proof_type: form.idProofType || undefined, id_proof_url: form.idProofUrl || undefined,
       plan_id: form.plan_id || plans[0]?.id || '', trial_days: form.payChoice === 'trial' ? form.trial : 0,
       csm: form.csm || null,
     };
@@ -248,11 +263,11 @@ export function OnboardWizard(): React.ReactElement {
             {step === 0 && (
               <div className="fc gap16">
                 <Field label="School name" k="name" form={form} set={set} errors={errors} placeholder="e.g. Greenwood High" />
-                <Field label="Workspace slug" k="slug" form={form} set={set} errors={errors} prefix="catre.app/" hint="Auto-generated from the name; editable." />
+                <Field label="Workspace URL" k="slug" form={form} set={set} errors={errors} prefix="catre.app/" hint="Auto-generated from the name; editable." />
                 <div className="grid-auto cols-200">
-                  <div className="field"><label>City</label>
-                    <select className="select" value={form.city} onChange={e => set('city', e.target.value)}>
-                      {CITIES.map(c => <option key={c}>{c}</option>)}
+                  <div className="field"><label>State</label>
+                    <select className="select" value={form.state} onChange={e => set('state', e.target.value)}>
+                      <option value="">Select…</option>{STATES.map(s => <option key={s}>{s}</option>)}
                     </select></div>
                   <div className="field"><label>School size (students)</label>
                     <select className="select" value={form.size} onChange={e => set('size', e.target.value)}>
@@ -268,6 +283,37 @@ export function OnboardWizard(): React.ReactElement {
                 <Field label="Admin full name" k="adminName" form={form} set={set} errors={errors} placeholder="e.g. Priya Sharma" />
                 <Field label="Admin email" k="adminEmail" form={form} set={set} errors={errors} type="email" placeholder="admin@school.edu" hint="They'll receive an invite to set up the account." />
                 <Field label="Phone (optional)" k="adminPhone" form={form} set={set} errors={errors} placeholder="+91 90000 00000" />
+                <div className="field">
+                  <label>ID proof type</label>
+                  <select className="select" value={form.idProofType} onChange={e => set('idProofType', e.target.value)}>
+                    <option value="">Select…</option>
+                    <option value="pan">PAN</option>
+                    <option value="aadhaar">Aadhaar</option>
+                  </select>
+                  {errors.idProofType && <span className="error">{errors.idProofType}</span>}
+                </div>
+                <div className="field">
+                  <label>ID proof document</label>
+                  <input
+                    type="file"
+                    accept={ID_PROOF_ACCEPT.join(',')}
+                    onChange={async e => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      try {
+                        const url = await fileToIdProof(f);
+                        set('idProofUrl', url);
+                        setIdProofName(f.name);
+                        setErrors(x => ({ ...x, idProofUrl: '' }));
+                      } catch (err) {
+                        setErrors(x => ({ ...x, idProofUrl: (err as Error).message }));
+                      }
+                    }}
+                  />
+                  {idProofName && <span className="hint">Attached: {idProofName}</span>}
+                  {errors.idProofUrl && <span className="error">{errors.idProofUrl}</span>}
+                  <span className="hint">PAN or Aadhaar — JPG, PNG, or PDF, up to ~2.5MB.</span>
+                </div>
                 <div className="field">
                   <label>Sales / CSM</label>
                   <select className="select" value={form.csm} onChange={e => set('csm', e.target.value)}>
@@ -358,7 +404,7 @@ export function OnboardWizard(): React.ReactElement {
                   </div>
                 </div>
                 <dl className="dl">
-                  <dt>City</dt><dd>{form.city}</dd>
+                  <dt>State</dt><dd>{form.state || '—'}</dd>
                   <dt>Address</dt><dd>{form.address || '—'}</dd>
                   <dt>Admin</dt><dd>{form.adminName || '—'} · {form.adminEmail || '—'}</dd>
                   <dt>CSM</dt><dd>{form.csm || 'Unassigned'}</dd>

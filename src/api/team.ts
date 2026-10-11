@@ -112,6 +112,28 @@ export function fileToTeamDocument(file: File, label?: string): Promise<TeamDocu
   });
 }
 
+/** MIME types accepted for an admin ID proof (PAN/Aadhaar scan). */
+export const ID_PROOF_ACCEPT = ['image/jpeg', 'image/png', 'application/pdf'];
+
+/** Read an admin ID-proof document (PAN/Aadhaar) as a base64 data URL for the API.
+ *  Rejects wrong types or files over 2.5MB (matches the backend DocumentUrlValidation cap). */
+export function fileToIdProof(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!ID_PROOF_ACCEPT.includes(file.type)) {
+      reject(new Error('ID proof must be a JPEG, PNG, or PDF file.'));
+      return;
+    }
+    if (file.size > DOC_MAX_BYTES) {
+      reject(new Error('ID proof must be 2.5MB or smaller.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the file.'));
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function downloadDataUrl(fileName: string, dataUrl: string): void {
   const a = document.createElement('a');
   a.href = dataUrl;

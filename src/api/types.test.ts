@@ -7,7 +7,7 @@ const EXPECTED: Record<string, string[]> = {
   TENANT_KEYS: ['id','name','slug','country','status','plan_id','plan_name','tier','mrr',
     'students_count','staff_count','storage_gb','limits','created','last_active_days',
     'trial_ends_days','contact','csm','health_score','gateway','usage_series',
-    'contact_name','contact_email','contact_phone','address'],
+    'contact_name','contact_email','contact_phone','address','id_proof_type','id_proof_url'],
   PLAN_KEYS: ['id','name','tier','pricing','price','per_student','min_students','period',
     'features','limits','visibility','audience','band','offer','color','description'],
   TEAM_MEMBER_KEYS: ['id','name','email','phone','role','status','last_login','joined','employee_id','photo_url','documents'],

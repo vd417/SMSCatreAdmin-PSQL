@@ -1,10 +1,28 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { listTeam, inviteTeamMember, updateTeamMember } from './team';
+import { listTeam, inviteTeamMember, updateTeamMember, fileToIdProof } from './team';
 
 function jr(b: unknown, s = 200): Response {
   return new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
 }
 beforeEach(() => vi.restoreAllMocks());
+
+describe('fileToIdProof', () => {
+  const makeFile = (type: string, size: number) =>
+    new File([new Uint8Array(size)], 'id', { type });
+
+  it('rejects a non-image/pdf file', async () => {
+    await expect(fileToIdProof(makeFile('text/plain', 10))).rejects.toThrow();
+  });
+
+  it('rejects a file over 2.5MB', async () => {
+    await expect(fileToIdProof(makeFile('application/pdf', 2.5 * 1024 * 1024 + 1))).rejects.toThrow();
+  });
+
+  it('resolves a pdf to a data URL', async () => {
+    const url = await fileToIdProof(makeFile('application/pdf', 20));
+    expect(url.startsWith('data:application/pdf')).toBe(true);
+  });
+});
 
 describe('listTeam', () => {
   it('GETs /team', async () => {

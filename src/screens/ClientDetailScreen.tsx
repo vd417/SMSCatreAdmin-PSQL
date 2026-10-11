@@ -204,8 +204,19 @@ export function ClientDetailScreen(): React.ReactElement {
                   label="Client ID"
                   value={<Copyable text={detail.data.id}><span className="mono tiny">{detail.data.id}</span></Copyable>}
                 />
-                <Detail label="Slug" value={dash(detail.data.slug)} />
+                <Detail label="Workspace URL" value={dash(detail.data.slug)} />
                 <Detail label="Location" value={dash(detail.data.country)} />
+                <Detail
+                  label="ID proof"
+                  value={
+                    detail.data.id_proof_url
+                      ? <span className="row gap8">
+                          <span>{detail.data.id_proof_type === 'aadhaar' ? 'Aadhaar' : 'PAN'}</span>
+                          <a href={detail.data.id_proof_url} target="_blank" rel="noopener noreferrer">View</a>
+                        </span>
+                      : dash(null)
+                  }
+                />
                 <Detail label="Created" value={asDate(detail.data.created)} />
                 <Detail label="Status" value={<StatusBadge status={detail.data.status} />} />
                 <Detail label="CSM" value={dash(detail.data.csm)} />

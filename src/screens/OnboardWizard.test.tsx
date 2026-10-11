@@ -32,22 +32,46 @@ describe('OnboardWizard', () => {
     expect(screen.getByText('School name is required')).toBeInTheDocument();
   });
 
-  it('labels location as City (not Country) and adds Address, relabeled size', () => {
+  it('labels location as State (not Country/City) and adds Address, relabeled size', () => {
     renderWizard();
-    expect(screen.getByText('City')).toBeInTheDocument();
+    expect(screen.getByText('State')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Maharashtra' })).toBeInTheDocument();
     expect(screen.getByText('Address')).toBeInTheDocument();
     expect(screen.getByText('School size (students)')).toBeInTheDocument();
     expect(screen.queryByText('Country')).toBeNull();
+    expect(screen.queryByText('City')).toBeNull();
     expect(screen.queryByText('Approx. size')).toBeNull();
   });
 
-  it('lets the user enter a custom trial length on the trial step', async () => {
+  // Fill the admin step's required fields, including the ID proof (type + document).
+  async function fillAdminStep(user: ReturnType<typeof userEvent.setup>, container: HTMLElement) {
+    await user.type(screen.getByPlaceholderText('e.g. Priya Sharma'), 'Priya');
+    await user.type(screen.getByPlaceholderText('admin@school.edu'), 'a@b.co');
+    const typeSelect = screen.getAllByRole('combobox').find(s => s.querySelector('option[value="pan"]'))!;
+    fireEvent.change(typeSelect, { target: { value: 'pan' } });
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File([new Uint8Array(10)], 'pan.pdf', { type: 'application/pdf' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await screen.findByText(/Attached:/);
+  }
+
+  it('requires an ID proof type and document on the admin step', async () => {
     const user = userEvent.setup();
     renderWizard();
     await user.type(screen.getByPlaceholderText('e.g. Greenwood High'), 'Greenwood');
     fireEvent.click(screen.getByText('Continue')); // -> admin
     await user.type(screen.getByPlaceholderText('e.g. Priya Sharma'), 'Priya');
     await user.type(screen.getByPlaceholderText('admin@school.edu'), 'a@b.co');
+    fireEvent.click(screen.getByText('Continue')); // blocked: no ID proof
+    expect(screen.getByText('ID proof document is required')).toBeInTheDocument();
+  });
+
+  it('lets the user enter a custom trial length on the trial step', async () => {
+    const user = userEvent.setup();
+    const { container } = renderWizard();
+    await user.type(screen.getByPlaceholderText('e.g. Greenwood High'), 'Greenwood');
+    fireEvent.click(screen.getByText('Continue')); // -> admin
+    await fillAdminStep(user, container);
     fireEvent.click(screen.getByText('Continue')); // -> plan
     fireEvent.click(screen.getByText('Continue')); // -> trial
     const custom = screen.getByPlaceholderText('Custom days');

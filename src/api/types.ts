@@ -34,7 +34,7 @@ export const CONTRACT_KEYS: Record<string, string[]> = {
   TENANT_KEYS: ['id','name','slug','country','status','plan_id','plan_name','tier','mrr',
     'students_count','staff_count','storage_gb','limits','created','last_active_days',
     'trial_ends_days','contact','csm','health_score','gateway','usage_series',
-    'contact_name','contact_email','contact_phone','address'],
+    'contact_name','contact_email','contact_phone','address','id_proof_type','id_proof_url'],
   PLAN_KEYS: ['id','name','tier','pricing','price','per_student','min_students','period',
     'features','limits','visibility','audience','band','offer','color','description'],
   TEAM_MEMBER_KEYS: ['id','name','email','phone','role','status','last_login','joined','employee_id','photo_url','documents'],
@@ -102,6 +102,7 @@ export interface Client {
   health_score: number; gateway: string; usage_series: number[];
   contact_name: string | null; contact_email: string | null;
   contact_phone: string | null; address: string | null;
+  id_proof_type?: 'pan' | 'aadhaar' | null; id_proof_url?: string | null;
 }
 
 export type ClientStatusAction =
@@ -129,6 +130,8 @@ export interface CreateClientBody {
   admin_name: string; admin_email: string; admin_phone: string;
   plan_id: string; trial_days: number;
   address?: string; status?: ClientStatus; csm?: string | null;
+  id_proof_type?: 'pan' | 'aadhaar';
+  id_proof_url?: string;
 }
 
 export type InvoiceStatus = 'paid' | 'open' | 'past_due';
