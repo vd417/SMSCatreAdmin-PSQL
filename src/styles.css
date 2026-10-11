@@ -142,7 +142,7 @@ ul { list-style: none; }
 
 /* minmax(0, 1fr): without the 0 minimum the main track floors at its content's min-content
    width, so a wide table or chart widens the grid instead of scrolling inside it. */
-.app { display: grid; grid-template-columns: auto minmax(0, 1fr); height: 100%; background: var(--bg-grad); }
+.app { display: grid; grid-template-columns: auto minmax(0, 1fr); height: 100%; overflow: hidden; background: var(--bg-grad); }
 
 .sidebar {
   width: var(--sb-w); height: 100%; flex-shrink: 0;
@@ -217,7 +217,7 @@ ul { list-style: none; }
 .sidebar .brand { border-bottom: 1px solid var(--sb-border); }
 
 /* main column */
-.main { display: flex; flex-direction: column; min-width: 0; height: 100%; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; }
 .topbar {
   height: 60px; flex-shrink: 0; display: flex; align-items: center; gap: 14px;
   padding: 0 22px; border-bottom: 1px solid var(--border-soft);
@@ -258,7 +258,7 @@ ul { list-style: none; }
 .command-item-group { font-size: 11px; font-weight: 500; color: var(--text-3); }
 .command-empty { padding: 10px; font-size: 13px; color: var(--text-3); text-align: center; }
 
-.content { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+.content { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; }
 .page { max-width: 1320px; margin: 0 auto; padding: 26px 28px 80px; }
 .page-wide { max-width: 1500px; }
 
