@@ -7,6 +7,7 @@ const items: CommandItem[] = [
   { key: 'dashboard', label: 'Dashboard', route: 'dashboard', group: 'Overview' },
   { key: 'clients', label: 'Clients', route: 'clients', group: 'Clients' },
   { key: 'billing', label: 'Billing', route: 'billing', group: 'Revenue' },
+  { key: 'client:c1', label: 'Greenwood High', route: 'client', group: 'Clients', params: { id: 'c1' }, keywords: 'greenwood-high' },
 ];
 
 describe('CommandSearch', () => {
@@ -24,9 +25,27 @@ describe('CommandSearch', () => {
     const onNav = vi.fn();
     render(<CommandSearch items={items} onNavigate={onNav} />);
     await user.click(screen.getByRole('combobox'));
-    await user.type(screen.getByRole('combobox'), 'client');
+    await user.type(screen.getByRole('combobox'), 'clients');
     await user.keyboard('{Enter}');
-    expect(onNav).toHaveBeenCalledWith('clients');
+    expect(onNav).toHaveBeenCalledWith('clients', undefined);
+  });
+
+  it('navigates to a client by name with its id params', async () => {
+    const user = userEvent.setup();
+    const onNav = vi.fn();
+    render(<CommandSearch items={items} onNavigate={onNav} />);
+    await user.click(screen.getByRole('combobox'));
+    await user.type(screen.getByRole('combobox'), 'greenwood');
+    await user.keyboard('{Enter}');
+    expect(onNav).toHaveBeenCalledWith('client', { id: 'c1' });
+  });
+
+  it('matches a client by its slug keyword', async () => {
+    const user = userEvent.setup();
+    render(<CommandSearch items={items} onNavigate={() => {}} />);
+    await user.click(screen.getByRole('combobox'));
+    await user.type(screen.getByRole('combobox'), 'greenwood-high');
+    expect(screen.getByText('Greenwood High')).toBeInTheDocument();
   });
 
   it('navigates on click', async () => {
@@ -35,7 +54,7 @@ describe('CommandSearch', () => {
     render(<CommandSearch items={items} onNavigate={onNav} />);
     await user.click(screen.getByRole('combobox'));
     await user.click(screen.getByRole('option', { name: /Billing/ }));
-    expect(onNav).toHaveBeenCalledWith('billing');
+    expect(onNav).toHaveBeenCalledWith('billing', undefined);
   });
 
   it('focuses the input on ⌘K', () => {

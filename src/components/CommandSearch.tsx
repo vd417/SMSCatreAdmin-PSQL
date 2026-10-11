@@ -6,11 +6,15 @@ export interface CommandItem {
   label: string;
   route: string;
   group: string;
+  /** Extra route params, e.g. a client id for route 'client'. */
+  params?: Record<string, unknown>;
+  /** Extra text to match on (e.g. a client slug) that isn't shown as the label. */
+  keywords?: string;
 }
 
 interface CommandSearchProps {
   items: CommandItem[];
-  onNavigate: (route: string) => void;
+  onNavigate: (route: string, params?: Record<string, unknown>) => void;
 }
 
 /** Top-bar command palette. ⌘K / Ctrl+K focuses it; typing filters the pages the
@@ -26,7 +30,9 @@ export function CommandSearch({ items, onNavigate }: CommandSearchProps) {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter(it =>
-      it.label.toLowerCase().includes(q) || it.group.toLowerCase().includes(q));
+      it.label.toLowerCase().includes(q) ||
+      it.group.toLowerCase().includes(q) ||
+      (it.keywords?.toLowerCase().includes(q) ?? false));
   }, [items, query]);
 
   // Reset the highlight to the top whenever the result set changes.
@@ -54,8 +60,8 @@ export function CommandSearch({ items, onNavigate }: CommandSearchProps) {
     return () => window.removeEventListener('mousedown', onDown);
   }, []);
 
-  const choose = (route: string) => {
-    onNavigate(route);
+  const choose = (it: CommandItem) => {
+    onNavigate(it.route, it.params);
     setOpen(false);
     setQuery('');
     inputRef.current?.blur();
@@ -76,7 +82,7 @@ export function CommandSearch({ items, onNavigate }: CommandSearchProps) {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const it = results[highlight];
-      if (it) choose(it.route);
+      if (it) choose(it);
     }
   };
 
@@ -108,7 +114,7 @@ export function CommandSearch({ items, onNavigate }: CommandSearchProps) {
                 aria-selected={i === highlight}
                 className={'command-item' + (i === highlight ? ' active' : '')}
                 onMouseEnter={() => setHighlight(i)}
-                onClick={() => choose(it.route)}
+                onClick={() => choose(it)}
               >
                 <span className="command-item-label">{it.label}</span>
                 <span className="command-item-group">{it.group}</span>

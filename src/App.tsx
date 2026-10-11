@@ -19,6 +19,7 @@ import { Menu, MenuItem, Avatar, NavCtx, Forbidden } from './components';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NotificationsBell } from './components/NotificationsBell';
 import { CommandSearch } from './components/CommandSearch';
+import { useClients } from './api/hooks/useClients';
 import { ROLES } from './auth/rbac';
 
 /* ---- nav structure (ported from app.jsx) ---- */
@@ -89,6 +90,8 @@ export function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
   useAutoCollapse(setCollapsed);
+  // Loaded once for the command palette (shares ClientsScreen's query key/cache).
+  const clientsQuery = useClients({ sort: '-mrr', limit: 200 }, can('clients.view'));
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -150,9 +153,19 @@ export function App() {
   const isActive = (item: NavItem) => (item.match || [item.route]).includes(route.name);
   const crumbs = CRUMB[route.name] || ['Dashboard'];
   // Pages the current role can reach — feeds the top-bar command palette.
-  const commandItems = NAV.flatMap(grp =>
+  const pageItems = NAV.flatMap(grp =>
     grp.items.filter(it => can(it.perm)).map(it => ({ key: it.key, label: it.label, route: it.route, group: grp.group })),
   );
+  // Plus loaded clients, so the palette can jump straight to a school by name or slug.
+  const clientItems = (clientsQuery.data?.pages ?? []).flatMap(p => p.data).map(c => ({
+    key: `client:${c.id}`,
+    label: c.name,
+    route: 'client',
+    group: 'Clients',
+    params: { id: c.id },
+    keywords: c.slug ?? undefined,
+  }));
+  const commandItems = [...pageItems, ...clientItems];
 
   return (
     <NavCtx.Provider value={{ route, go }}>
@@ -217,7 +230,7 @@ export function App() {
               ))}
             </div>
             <div className="topbar-spacer" />
-            <CommandSearch items={commandItems} onNavigate={go} />
+            <CommandSearch items={commandItems} onNavigate={(route, params) => go(route, params)} />
 
             <button
               className="btn btn-ghost btn-icon"
