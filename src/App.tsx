@@ -18,6 +18,7 @@ import { Icon, IconComponent } from './lib/icons';
 import { Menu, MenuItem, Avatar, NavCtx, Forbidden } from './components';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NotificationsBell } from './components/NotificationsBell';
+import { CommandSearch } from './components/CommandSearch';
 import { ROLES } from './auth/rbac';
 
 /* ---- nav structure (ported from app.jsx) ---- */
@@ -148,6 +149,10 @@ export function App() {
 
   const isActive = (item: NavItem) => (item.match || [item.route]).includes(route.name);
   const crumbs = CRUMB[route.name] || ['Dashboard'];
+  // Pages the current role can reach — feeds the top-bar command palette.
+  const commandItems = NAV.flatMap(grp =>
+    grp.items.filter(it => can(it.perm)).map(it => ({ key: it.key, label: it.label, route: it.route, group: grp.group })),
+  );
 
   return (
     <NavCtx.Provider value={{ route, go }}>
@@ -164,6 +169,14 @@ export function App() {
                 <div className="brand-sub">Technology</div>
               </div>
             )}
+            <button
+              className="sidebar-toggle"
+              onClick={() => setCollapsed(c => !c)}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <Icon.panelLeft size={18} />
+            </button>
           </div>
           <nav className="nav">
             {NAV.map(grp => {
@@ -187,12 +200,6 @@ export function App() {
               );
             })}
           </nav>
-          <div className="sidebar-foot">
-            <button className="nav-item" onClick={() => setCollapsed(c => !c)} title="Collapse">
-              <Icon.panelLeft size={17} />
-              {!collapsed && <span className="nav-item-label">Collapse</span>}
-            </button>
-          </div>
         </aside>
 
         <div className="main">
@@ -210,11 +217,7 @@ export function App() {
               ))}
             </div>
             <div className="topbar-spacer" />
-            <div className="search-box">
-              <Icon.search size={15} />
-              <input placeholder="Search…" />
-              <span className="kbd">⌘K</span>
-            </div>
+            <CommandSearch items={commandItems} onNavigate={go} />
 
             <button
               className="btn btn-ghost btn-icon"
