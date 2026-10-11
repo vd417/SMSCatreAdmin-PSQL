@@ -11,7 +11,6 @@ import { groupClientsByOwner, type OwnerGroup } from '../lib/ownerSchools';
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'active', label: 'Active' },
-  { value: 'trial', label: 'Trial' },
   { value: 'suspended', label: 'Suspended' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
