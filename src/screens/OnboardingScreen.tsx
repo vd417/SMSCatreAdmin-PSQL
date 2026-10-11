@@ -11,11 +11,12 @@ import { useAdvanceOnboarding, usePatchChecklist } from '../api/hooks/useOnboard
 import type { ApiError } from '../api/ApiError';
 import type { OnboardingCard, OnboardingStage } from '../api/types';
 
+// Lead → Trial → Onboarding. There is no Active column: a card auto-activates
+// (and leaves the pipeline) when all its checklist tasks are complete.
 const COLS = [
   { key: 'lead',       title: 'Lead',       color: 'var(--slate)' },
   { key: 'trial',      title: 'Trial',      color: 'var(--amber)' },
   { key: 'onboarding', title: 'Onboarding', color: 'var(--blue)'  },
-  { key: 'active',     title: 'Active',     color: 'var(--green)' },
 ] as const;
 
 type ColKey = typeof COLS[number]['key'];
@@ -169,7 +170,13 @@ export function OnboardingScreen() {
     if (!item) return;
     patch.mutate(
       { id: card.id, label: item.label, done: !item.done },
-      { onError: (e) => toast({ kind: 'error', title: 'Update failed', msg: (e as ApiError).message }) }
+      {
+        onSuccess: (updated) => {
+          if (updated?.stage === 'active')
+            toast({ title: 'School activated 🎉', msg: `${card.name} completed onboarding and is now Active.` });
+        },
+        onError: (e) => toast({ kind: 'error', title: 'Update failed', msg: (e as ApiError).message }),
+      }
     );
   };
 
