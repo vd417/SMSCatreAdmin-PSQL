@@ -21,7 +21,7 @@ type Form = {
   name: string; slug: string; state: string; address: string; size: string; status: ClientStatus;
   adminName: string; adminEmail: string; adminPhone: string;
   idProofType: '' | 'pan' | 'aadhaar'; idProofUrl: string;
-  plan_id: string; trial: number; csm: string;
+  plan_id: string; trial: number; csm: string; studentsCount: number;
   payChoice: PayChoice;
 };
 
@@ -74,7 +74,7 @@ export function OnboardWizard(): React.ReactElement {
   const [form, setForm] = useState<Form>({
     name: '', slug: '', state: '', address: '', size: '', status: 'trial',
     adminName: '', adminEmail: '', adminPhone: '', idProofType: '', idProofUrl: '',
-    plan_id: plans[0]?.id ?? '', trial: 14, csm: '',
+    plan_id: plans[0]?.id ?? '', trial: 14, csm: '', studentsCount: 0,
     payChoice: 'trial',
   });
   const [idProofName, setIdProofName] = useState('');
@@ -202,6 +202,7 @@ export function OnboardWizard(): React.ReactElement {
   };
 
   const submit = () => {
+    const selPlan = plans.find(p => p.id === form.plan_id) ?? plans[0];
     const body: CreateClientBody = {
       name: form.name, slug: form.slug, country: form.state, size: form.size,
       address: form.address, status: 'trial',
@@ -209,6 +210,8 @@ export function OnboardWizard(): React.ReactElement {
       id_proof_type: form.idProofType || undefined, id_proof_url: form.idProofUrl || undefined,
       plan_id: form.plan_id || plans[0]?.id || '', trial_days: form.payChoice === 'trial' ? form.trial : 0,
       csm: form.csm || null,
+      // Only per-student plans bill on the count; flat plans ignore it.
+      students_count: selPlan?.pricing === 'per_student' ? form.studentsCount : undefined,
     };
     setPaying(true);
     create.mutate(body, {
@@ -347,6 +350,42 @@ export function OnboardWizard(): React.ReactElement {
                   {errors.plan_id && <span className="err">{errors.plan_id}</span>}
                 </div>
 
+                {plan?.pricing === 'per_student' && (() => {
+                  const rate = plan.per_student || 0;
+                  const min = plan.min_students || 0;
+                  const cap = (plan.limits as Record<string, number>)?.students ?? 0;
+                  const billable = Math.max(form.studentsCount, min);
+                  const est = billable * rate;
+                  return (
+                    <div className="field">
+                      <label>Number of students</label>
+                      <input
+                        className="input mono"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="e.g. 350"
+                        value={form.studentsCount === 0 ? '' : String(form.studentsCount)}
+                        onChange={e => {
+                          const raw = e.target.value.trim();
+                          if (raw === '') { set('studentsCount', 0); return; }
+                          const n = Number(raw);
+                          if (!Number.isNaN(n)) set('studentsCount', n);
+                        }}
+                      />
+                      <span className="tiny muted" style={{ marginTop: 6 }}>
+                        {form.studentsCount > 0 ? (
+                          <>Est. <b>{fmt.money(est)}</b>/mo — {fmt.num(billable)} × {fmt.money(rate)}/student
+                            {form.studentsCount < min && <> · minimum {fmt.num(min)} applies</>}
+                            {cap > 0 && form.studentsCount > cap && <> · ⚠ exceeds plan capacity {fmt.num(cap)}</>}
+                          </>
+                        ) : (
+                          <>Enter the school's student count to estimate the monthly bill.</>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 <div>
                   <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-2)' }}>Payment method</label>
                   <div className="fc gap8" style={{ marginTop: 10 }}>
@@ -408,7 +447,9 @@ export function OnboardWizard(): React.ReactElement {
                   <dt>Address</dt><dd>{form.address || '—'}</dd>
                   <dt>Admin</dt><dd>{form.adminName || '—'} · {form.adminEmail || '—'}</dd>
                   <dt>CSM</dt><dd>{form.csm || 'Unassigned'}</dd>
-                  <dt>Plan</dt><dd>{plan ? `${plan.name} · ${fmt.money(plan.price)}/mo` : '—'}</dd>
+                  <dt>Plan</dt><dd>{plan ? (plan.pricing === 'per_student'
+                    ? `${plan.name} · ${fmt.money(plan.per_student || 0)}/student/mo`
+                    : `${plan.name} · ${fmt.money(plan.price)}/mo`) : '—'}</dd>
                   <dt>Payment</dt>
                   <dd>
                     {form.payChoice === 'trial' && `Trial · ${form.trial} days (no payment now)`}
@@ -417,7 +458,13 @@ export function OnboardWizard(): React.ReactElement {
                   </dd>
                   <dt>First charge</dt>
                   <dd>
-                    {form.payChoice === 'trial' ? 'After trial ends / activation' : plan ? fmt.money(plan.price) + '/mo on approval' : '—'}
+                    {form.payChoice === 'trial'
+                      ? 'After trial ends / activation'
+                      : plan
+                        ? fmt.money(plan.pricing === 'per_student'
+                            ? Math.max(form.studentsCount, plan.min_students || 0) * (plan.per_student || 0)
+                            : plan.price) + '/mo on approval'
+                        : '—'}
                   </dd>
                 </dl>
                 <div className="row gap10" style={{ padding: '11px 14px', background: 'var(--accent-ghost)', borderRadius: 10, color: 'var(--accent-text)', fontSize: 12.5 }}>

@@ -60,6 +60,41 @@ describe('request', () => {
     expect(tokenStore.getRefresh()).toBeNull();
   });
 
+  it('coalesces concurrent 401s into a single refresh so a rotating token is spent once', async () => {
+    // Backend rotates the refresh token: /auth/refresh returns a NEW refresh token and
+    // invalidates the one that was sent. Two requests that 401 at the same time must share
+    // one refresh — otherwise the second spends the already-rotated token, 401s, and logs out.
+    tokenStore.set({ access_token: 'old', refresh_token: 'r1' });
+    const onFail = vi.fn();
+    setOnAuthFailure(onFail);
+
+    let validRefresh = 'r1';
+    let refreshCalls = 0;
+    const fetchMock = vi.fn((url: string, init: RequestInit) => {
+      const path = new URL(url).pathname;
+      const auth = (init.headers as Record<string, string> | undefined)?.Authorization;
+      if (path.endsWith('/auth/refresh')) {
+        refreshCalls++;
+        const sent = (JSON.parse(init.body as string) as { refresh_token: string }).refresh_token;
+        if (sent !== validRefresh) {
+          return Promise.resolve(jsonResponse({ error: { code: 'invalid_token', message: 'rotated' } }, 401));
+        }
+        validRefresh = 'r2'; // rotate: the token just sent is now spent
+        return Promise.resolve(jsonResponse({ data: { access_token: 'new', refresh_token: 'r2' } }));
+      }
+      if (auth === 'Bearer new') return Promise.resolve(jsonResponse({ data: { ok: true } }));
+      return Promise.resolve(jsonResponse({ error: { code: 'invalid_token', message: 'exp' } }, 401));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const [a, b] = await Promise.all([request<{ ok: boolean }>('/a'), request<{ ok: boolean }>('/b')]);
+    expect(a).toEqual({ ok: true });
+    expect(b).toEqual({ ok: true });
+    expect(refreshCalls).toBe(1);
+    expect(onFail).not.toHaveBeenCalled();
+    expect(tokenStore.getRefresh()).toBe('r2');
+  });
+
   it('calls onAuthFailure and throws when refresh also fails', async () => {
     tokenStore.set({ access_token: 'old', refresh_token: 'r1' });
     const onFail = vi.fn();

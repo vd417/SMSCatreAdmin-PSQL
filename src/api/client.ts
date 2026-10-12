@@ -59,7 +59,13 @@ async function parse<T>(res: Response): Promise<T> {
   return (json as { data: T }).data;
 }
 
-async function tryRefresh(): Promise<boolean> {
+// Single-flight the refresh. The backend rotates the refresh token (each /auth/refresh
+// returns a new one and invalidates the sent token), so concurrent 401s must share ONE
+// refresh — otherwise the losers of the race spend the already-rotated token, 401, and
+// get logged out. Callers that arrive while a refresh is in flight await the same promise.
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function doRefresh(): Promise<boolean> {
   const refresh = tokenStore.getRefresh();
   if (!refresh) return false;
   const res = await rawFetch('/auth/refresh', { method: 'POST', body: { refresh_token: refresh } }, null);
@@ -67,6 +73,13 @@ async function tryRefresh(): Promise<boolean> {
   const body = (await res.json()) as { data: { access_token: string; refresh_token: string } };
   tokenStore.set(body.data);
   return true;
+}
+
+function tryRefresh(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
 }
 
 async function executeWithRefresh(path: string, opts: RequestOpts): Promise<Response> {

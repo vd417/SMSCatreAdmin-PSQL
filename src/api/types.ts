@@ -132,6 +132,8 @@ export interface CreateClientBody {
   address?: string; status?: ClientStatus; csm?: string | null;
   id_proof_type?: 'pan' | 'aadhaar';
   id_proof_url?: string;
+  /** Exact student count entered at onboarding; drives per-student billing. Omit for flat plans. */
+  students_count?: number;
 }
 
 export type InvoiceStatus = 'paid' | 'open' | 'past_due';
