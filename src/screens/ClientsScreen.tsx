@@ -4,6 +4,7 @@ import {
   Btn, StatusBadge, Avatar, UsageBar, Pagination, SkeletonRows, Empty, Menu, MenuItem, fmt, useNav,
 } from '../components';
 import { Icon } from '../lib/icons';
+import { ClientRowActions } from '../components/ClientRowActions';
 import { useAuth } from '../auth/AuthContext';
 import type { Client } from '../api/types';
 import { groupClientsByOwner, type OwnerGroup } from '../lib/ownerSchools';
@@ -228,23 +229,18 @@ export function ClientsScreen(): React.ReactElement {
                           <td className="num">{g.mrr ? fmt.money(g.mrr) : <span className="muted">—</span>}</td>
                           <td className="num muted tiny">{fmtDate(earliestCreated(g.schools))}</td>
                           <td onClick={e => e.stopPropagation()}>
-                            <Menu trigger={<Btn variant="ghost" size="sm" icon={Icon.moreH} />}>
-                              {multi ? (
+                            {multi ? (
+                              <Menu trigger={<Btn variant="ghost" size="sm" icon={Icon.moreH} />}>
                                 <MenuItem
                                   icon={Icon.eye}
                                   onClick={() => setOpenKey(k => (k === g.key ? null : g.key))}
                                 >
                                   {open ? 'Hide schools' : 'Show schools'}
                                 </MenuItem>
-                              ) : (
-                                <MenuItem icon={Icon.eye} onClick={() => go('client', { id: g.schools[0].id })}>
-                                  View details
-                                </MenuItem>
-                              )}
-                              {can('billing.view') && (
-                                <MenuItem icon={Icon.invoice} onClick={() => go('billing')}>View invoices</MenuItem>
-                              )}
-                            </Menu>
+                              </Menu>
+                            ) : (
+                              <ClientRowActions school={g.schools[0]} />
+                            )}
                           </td>
                         </tr>
                         {open && multi && (
@@ -308,8 +304,8 @@ export function ClientsScreen(): React.ReactElement {
                                                 : <span className="muted tiny">{fmt.num(s.students_count ?? 0)}</span>}
                                             </td>
                                             <td className="num muted tiny">{fmtDate(s.created)}</td>
-                                            <td>
-                                              <Icon.chevRight size={14} style={{ color: 'var(--text-3)' }} />
+                                            <td onClick={e => e.stopPropagation()}>
+                                              <ClientRowActions school={s} />
                                             </td>
                                           </tr>
                                         );

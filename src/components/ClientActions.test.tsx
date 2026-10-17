@@ -9,6 +9,8 @@ vi.mock('../api/hooks/useClientMutations', () => ({
   useSetClientStatus: () => ({ mutate: vi.fn(), isPending: false }),
   useChangeClientPlan: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteClient: () => ({ mutate: vi.fn(), isPending: false }),
+  useIncreaseSeats: () => ({ mutate: vi.fn(), isPending: false }),
+  useSetSeatSettings: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock('../api/hooks/usePlans', () => ({ usePlans: () => ({ data: { data: [] } }) }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: () => true }) }));
@@ -41,6 +43,8 @@ describe('ClientActions', () => {
       useSetClientStatus: () => ({ mutate: vi.fn(), isPending: false }),
       useChangeClientPlan: () => ({ mutate: vi.fn(), isPending: false }),
       useDeleteClient: () => ({ mutate: vi.fn(), isPending: false }),
+      useIncreaseSeats: () => ({ mutate: vi.fn(), isPending: false }),
+      useSetSeatSettings: () => ({ mutate: vi.fn(), isPending: false }),
     }));
     vi.doMock('../api/hooks/usePlans', () => ({ usePlans: () => ({ data: { data: [] } }) }));
     const { ClientActions: Gated } = await import('./ClientActions');

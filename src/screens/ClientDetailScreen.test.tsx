@@ -29,8 +29,13 @@ vi.mock('../api/hooks/useClientMutations', () => ({
   useSetClientStatus: () => ({ mutate: vi.fn(), isPending: false }),
   useChangeClientPlan: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteClient: () => ({ mutate: vi.fn(), isPending: false }),
+  useIncreaseSeats: () => ({ mutate: vi.fn(), isPending: false }),
+  useSetSeatSettings: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock('../api/hooks/usePlans', () => ({ usePlans: () => ({ data: { data: [] } }) }));
+vi.mock('../api/hooks/useSeatRequests', () => ({
+  useSeatRequests: () => ({ data: [], isLoading: false, isError: false }),
+}));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: () => true }) }));
 
 describe('ClientDetailScreen', () => {

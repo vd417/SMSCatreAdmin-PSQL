@@ -103,6 +103,14 @@ export interface Client {
   contact_name: string | null; contact_email: string | null;
   contact_phone: string | null; address: string | null;
   id_proof_type?: 'pan' | 'aadhaar' | null; id_proof_url?: string | null;
+  /** Live active SIS enrolment (distinct from billed students_count). */
+  enrolled_students?: number;
+  /** Billing cycle: 'month' | 'quarter' | 'year'. */
+  billing_cycle?: string;
+  /** Seat increase mode: 'auto' | 'manual'. */
+  seat_increase_mode?: 'auto' | 'manual';
+  /** Per-school near-limit alert gap (null = plan/default). */
+  seat_alert_threshold?: number | null;
 }
 
 export type ClientStatusAction =

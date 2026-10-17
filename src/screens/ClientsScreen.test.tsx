@@ -1,6 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClientsScreen } from './ClientsScreen';
+
+// The per-row action menu uses real mutation hooks, so provide a QueryClient.
+const renderScreen = () =>
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ClientsScreen />
+    </QueryClientProvider>,
+  );
 
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: () => true }) }));
 vi.mock('../api/hooks/useClients', () => ({
@@ -20,7 +29,7 @@ vi.mock('../api/hooks/useClients', () => ({
 
 describe('ClientsScreen', () => {
   it('shows one client row per owner, not each school', () => {
-    render(<ClientsScreen />);
+    renderScreen();
     expect(screen.getByText('Anita')).toBeInTheDocument();
     expect(screen.getByText('owner@school.com')).toBeInTheDocument();
     expect(screen.queryByText('Greenwood High')).not.toBeInTheDocument();
@@ -28,7 +37,7 @@ describe('ClientsScreen', () => {
   });
 
   it('expands owner click to list schools with details', () => {
-    render(<ClientsScreen />);
+    renderScreen();
     fireEvent.click(screen.getByText('Anita'));
     expect(screen.getByText('Schools under this owner')).toBeInTheDocument();
     expect(screen.getByText('Greenwood High')).toBeInTheDocument();

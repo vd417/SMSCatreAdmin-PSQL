@@ -1,12 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { useClient } from '../api/hooks/useClient';
 import { useClients, useClientUsage, useClientActivity } from '../api/hooks/useClients';
+import { useSeatRequests } from '../api/hooks/useSeatRequests';
 import { QueryBoundary } from '../components/QueryBoundary';
 import { useNav, StatusBadge, UsageBar, fmt, useToast, Btn } from '../components';
+import { useAuth } from '../auth/AuthContext';
 import { Icon } from '../lib/icons';
 import { ClientActions } from '../components/ClientActions';
 import { schoolsForOwner } from '../lib/ownerSchools';
 import type { Client } from '../api/types';
+import type { SeatRequestStatus } from '../api/seatRequests';
+
+const seatStatusLabel: Record<SeatRequestStatus, string> = {
+  pending: 'Pending review', approved: 'Approved', rejected: 'Rejected',
+};
 
 function dash(v: string | number | null | undefined): string {
   if (v === null || v === undefined || v === '') return '—';
@@ -85,10 +92,13 @@ function Copyable({
 
 export function ClientDetailScreen(): React.ReactElement {
   const { route, go } = useNav();
+  const { can } = useAuth();
   const id = String(route.params.id ?? '');
   const detail = useClient(id);
   const usage = useClientUsage(id);
   const activity = useClientActivity(id);
+  const seatReqs = useSeatRequests(undefined, { enabled: can('billing.view') });
+  const seatRows = (seatReqs.data ?? []).filter(r => r.tenant_id === id);
   const allClients = useClients({ sort: '-mrr', limit: 200 });
   const clientList: Client[] = allClients.data?.pages.flatMap(p => p.data) ?? [];
   const ownerSchools = useMemo(
@@ -246,17 +256,60 @@ export function ClientDetailScreen(): React.ReactElement {
               </div>
             </div>
 
+            {can('billing.view') && (
+              <div className="card" style={{ marginTop: 16, padding: 16 }}>
+                <b>Seats &amp; history</b>
+                <div className="detail-grid" style={{ marginTop: 12 }}>
+                  <Detail label="Billed seats" value={fmt.num(detail.data.students_count ?? 0)} />
+                  <Detail label="Live enrolled" value={fmt.num(detail.data.enrolled_students ?? detail.data.students_count ?? 0)} />
+                  <Detail label="Plan student limit" value={detail.data.limits?.students ? fmt.num(detail.data.limits.students) : '—'} />
+                  <Detail label="Increase mode" value={detail.data.seat_increase_mode ?? 'manual'} />
+                </div>
+                <div style={{ marginTop: 16 }}>
+                  <div className="tiny muted" style={{ fontWeight: 600, marginBottom: 8 }}>Seat request history</div>
+                  <QueryBoundary
+                    isLoading={seatReqs.isLoading}
+                    isError={seatReqs.isError}
+                    error={seatReqs.error}
+                    isEmpty={seatRows.length === 0}
+                    emptyTitle="No seat requests for this school"
+                    emptyMessage="Customer-raised seat requests and their approvals appear here."
+                  >
+                    <div className="tbl-wrap">
+                      <table className="tbl">
+                        <thead>
+                          <tr><th>Change</th><th>Status</th><th>Raised</th><th>Note</th></tr>
+                        </thead>
+                        <tbody>
+                          {seatRows.map(r => (
+                            <tr key={r.id}>
+                              <td>{fmt.num(r.current_seats)} → <b>{fmt.num(r.requested_seats)}</b> seats</td>
+                              <td><span className="chip">{seatStatusLabel[r.status] ?? r.status}</span></td>
+                              <td className="tiny muted mono">{r.created_at?.slice(0, 10)}</td>
+                              <td className="muted">{r.note ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </QueryBoundary>
+                </div>
+              </div>
+            )}
+
             <div className="card" style={{ marginTop: 16, padding: 16 }}>
               <b>Usage</b>
               <QueryBoundary isLoading={usage.isLoading} isError={usage.isError} error={usage.error}>
                 {usage.data && (
                   <div style={{ marginTop: 10 }}>
                     <UsageBar
-                      label="Students"
-                      value={usage.data.students_count}
-                      limit={usage.data.limits.students ?? usage.data.students_count}
+                      label="Students (live enrolled)"
+                      value={detail.data.enrolled_students ?? usage.data.students_count}
+                      limit={usage.data.limits.students ?? detail.data.students_count ?? usage.data.students_count}
                     />
                     <div className="row gap16 muted tiny" style={{ marginTop: 8 }}>
+                      <span>Enrolled (live) <b>{fmt.num(detail.data.enrolled_students ?? usage.data.students_count)}</b></span>
+                      <span>Billed seats {fmt.num(detail.data.students_count ?? usage.data.students_count)}</span>
                       <span>Staff {fmt.num(usage.data.staff_count)}</span>
                       <span>Storage {usage.data.storage_gb} GB</span>
                       <span>{usage.data.usage_pct}% of plan</span>

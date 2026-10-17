@@ -66,3 +66,19 @@ export function changeClientPlan(id: string, plan_id: string): Promise<Client> {
 export function deleteClient(id: string): Promise<void> {
   return request<void>(`/clients/${id}`, { method: 'DELETE', body: { confirm: 'DELETE' } });
 }
+
+/** Raise a school's billed seat limit directly (recomputes MRR, prorates per-student). */
+export function increaseSeats(id: string, seatLimit: number, reason?: string): Promise<Client> {
+  return request<Client>(`/clients/${id}/seats`, {
+    method: 'POST',
+    body: { seat_limit: seatLimit, reason: reason ?? null },
+  });
+}
+
+/** Update a school's seat policy: auto/manual increase mode + near-limit alert threshold. */
+export function setSeatSettings(
+  id: string,
+  body: { seat_increase_mode?: 'auto' | 'manual'; seat_alert_threshold?: number },
+): Promise<Client> {
+  return request<Client>(`/clients/${id}/seat-settings`, { method: 'POST', body });
+}

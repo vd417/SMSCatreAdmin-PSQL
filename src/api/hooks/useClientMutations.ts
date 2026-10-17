@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createClient, setClientStatus, changeClientPlan, deleteClient } from '../clients';
+import { createClient, setClientStatus, changeClientPlan, deleteClient, increaseSeats, setSeatSettings } from '../clients';
 import { passwordForgot } from '../auth';
 import { qk } from '../queryKeys';
 import type { CreateClientBody, ClientStatusAction } from '../types';
@@ -40,6 +40,30 @@ export function useChangeClientPlan(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (plan_id: string) => changeClientPlan(id, plan_id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.clients.detail(id) });
+      qc.invalidateQueries({ queryKey: LIST_KEY });
+    },
+  });
+}
+
+export function useIncreaseSeats(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ seatLimit, reason }: { seatLimit: number; reason?: string }) => increaseSeats(id, seatLimit, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.clients.detail(id) });
+      qc.invalidateQueries({ queryKey: LIST_KEY });
+      qc.invalidateQueries({ queryKey: qk.subscriptions.list() });
+      qc.invalidateQueries({ queryKey: ['invoices', 'list'] });
+    },
+  });
+}
+
+export function useSetSeatSettings(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { seat_increase_mode?: 'auto' | 'manual'; seat_alert_threshold?: number }) => setSeatSettings(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.clients.detail(id) });
       qc.invalidateQueries({ queryKey: LIST_KEY });

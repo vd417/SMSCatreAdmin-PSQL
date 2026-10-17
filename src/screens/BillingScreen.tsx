@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useInvoices } from '../api/hooks/useInvoices';
 import type { Invoice } from '../api/types';
@@ -6,10 +6,11 @@ import { PlansTab } from '../components/billing/PlansTab';
 import { SubscriptionsTab } from '../components/billing/SubscriptionsTab';
 import { InvoicesTab } from '../components/billing/InvoicesTab';
 import { UpgradeRequestsTab } from '../components/billing/UpgradeRequestsTab';
-import { Btn } from '../components';
+import { SeatRequestsTab } from '../components/billing/SeatRequestsTab';
+import { Btn, useNav } from '../components';
 import { Icon } from '../lib/icons';
 
-type TabKey = 'plans' | 'subscriptions' | 'invoices' | 'upgrades';
+type TabKey = 'plans' | 'subscriptions' | 'invoices' | 'upgrades' | 'seats';
 
 interface TabDef {
   key: TabKey;
@@ -24,6 +25,7 @@ export function BillingScreen({ plansOnly }: { plansOnly?: boolean }): React.Rea
     ? [{ key: 'plans', label: 'Plans catalog', perm: 'plans.view' }]
     : [
         { key: 'upgrades', label: 'Upgrade requests', perm: 'billing.view' },
+        { key: 'seats', label: 'Seat requests', perm: 'billing.view' },
         { key: 'plans', label: 'Plans', perm: 'plans.view' },
         { key: 'subscriptions', label: 'Subscriptions', perm: 'billing.view' },
         { key: 'invoices', label: 'Invoices', perm: 'billing.view' },
@@ -31,7 +33,16 @@ export function BillingScreen({ plansOnly }: { plansOnly?: boolean }): React.Rea
 
   const tabs = allTabs.filter(t => can(t.perm));
 
-  const [tab, setTab] = useState<TabKey>(tabs[0]?.key ?? 'plans');
+  // In the full billing view the active sub-tab lives in the URL (/billing/:tab) so
+  // tabs are deep-linkable and show up in the address bar on click. The plans-only
+  // view (its own /plans route) has a single tab and stays local.
+  const { route, go } = useNav();
+  const fallbackTab: TabKey = tabs[0]?.key ?? 'plans';
+  const urlTab = route.params.tab as TabKey | undefined;
+  const tab: TabKey = plansOnly
+    ? 'plans'
+    : (urlTab && tabs.some(t => t.key === urlTab) ? urlTab : fallbackTab);
+  const setTab = (k: TabKey) => go('billing', { tab: k });
 
   const pastDueQuery = useInvoices({ status: 'past_due' }, { enabled: !plansOnly });
   const pastDue = pastDueQuery.data?.pages.flatMap(p => p.data) ?? [];
@@ -82,6 +93,7 @@ export function BillingScreen({ plansOnly }: { plansOnly?: boolean }): React.Rea
       )}
 
       {tab === 'upgrades' && <UpgradeRequestsTab />}
+      {tab === 'seats' && <SeatRequestsTab />}
       {tab === 'plans' && <PlansTab />}
       {tab === 'subscriptions' && <SubscriptionsTab />}
       {tab === 'invoices' && <InvoicesTab />}

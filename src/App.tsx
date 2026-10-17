@@ -21,6 +21,7 @@ import { NotificationsBell } from './components/NotificationsBell';
 import { CommandSearch } from './components/CommandSearch';
 import { useClients } from './api/hooks/useClients';
 import { ROLES } from './auth/rbac';
+import { parsePath, routeToPath } from './lib/routing';
 
 /* ---- nav structure (ported from app.jsx) ---- */
 type NavItem = { key: string; label: string; icon: IconComponent; perm: string; route: string; match?: string[]; color: string };
@@ -86,7 +87,7 @@ export function App() {
   const { status, role, can, signOut, user } = useAuth();
   // Light by default. Key renamed from 'sm_theme', which the old dark default auto-saved for everyone.
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('catre_theme') as Theme) || 'light');
-  const [route, setRoute] = useState<Route>({ name: 'dashboard', params: {} });
+  const [route, setRoute] = useState<Route>(() => parsePath(window.location.pathname));
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
   useAutoCollapse(setCollapsed);
@@ -98,10 +99,25 @@ export function App() {
     localStorage.setItem('catre_theme', theme);
   }, [theme]);
 
+  // Keep the route in sync with browser back/forward, and normalise a bare "/" to
+  // the canonical path so the address bar always reflects the current screen.
+  useEffect(() => {
+    const onPop = () => setRoute(parsePath(window.location.pathname));
+    window.addEventListener('popstate', onPop);
+    const canonical = routeToPath(parsePath(window.location.pathname));
+    if (canonical !== window.location.pathname) {
+      window.history.replaceState(null, '', canonical);
+    }
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   // if role loses access to current route, bounce to dashboard
   useEffect(() => {
     const perm = ROUTE_PERM[route.name];
-    if (perm && role && !can(perm)) setRoute({ name: 'dashboard', params: {} });
+    if (perm && role && !can(perm)) {
+      window.history.replaceState(null, '', '/dashboard');
+      setRoute({ name: 'dashboard', params: {} });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
@@ -111,7 +127,10 @@ export function App() {
   if (status === 'anon' || !role) return <AuthScreen />;
 
   const go = (name: string, params: Record<string, unknown> = {}) => {
-    setRoute({ name, params });
+    const next = { name, params };
+    const path = routeToPath(next);
+    if (path !== window.location.pathname) window.history.pushState(null, '', path);
+    setRoute(next);
     setMobileNav(false);
     const content = document.querySelector('.content');
     if (content) content.scrollTop = 0;

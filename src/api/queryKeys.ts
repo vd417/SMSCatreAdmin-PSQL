@@ -2,7 +2,7 @@ export interface ClientsListParams {
   status?: string; tier?: string; q?: string; sort?: string; limit?: number;
 }
 export interface RevenueParams { months?: number; }
-export interface InvoicesListParams { status?: string; limit?: number; }
+export interface InvoicesListParams { status?: string; limit?: number; tenant_id?: string; }
 export interface TicketsListParams { status?: string; q?: string; limit?: number; }
 
 export const qk = {
@@ -38,5 +38,8 @@ export const qk = {
   notifications: { list: () => ['notifications', 'list'] as const },
   upgradeRequests: {
     list: (status?: string) => ['upgradeRequests', 'list', status ?? 'all'] as const,
+  },
+  seatRequests: {
+    list: (status?: string) => ['seatRequests', 'list', status ?? 'all'] as const,
   },
 };
