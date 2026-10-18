@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient, setClientStatus, changeClientPlan, deleteClient, increaseSeats, setSeatSettings } from '../clients';
-import { passwordForgot } from '../auth';
 import { qk } from '../queryKeys';
 import type { CreateClientBody, ClientStatusAction } from '../types';
 
@@ -9,14 +8,10 @@ const LIST_KEY = ['clients', 'list'] as const;
 export function useCreateClient() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: CreateClientBody) => {
-      const client = await createClient(body);
-      /* passwordForgot: welcome + setup OTP (API may already send; this covers older APIs). */
-      if (body.admin_email) {
-        try { await passwordForgot(body.admin_email); } catch { /* best-effort */ }
-      }
-      return client;
-    },
+    // The API sends a warm welcome email (no OTP) on create. The owner sets their
+    // password from the panel's "Create a password" flow, where the one-time code is sent —
+    // so we no longer fire a password-setup OTP here.
+    mutationFn: (body: CreateClientBody) => createClient(body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: LIST_KEY }); },
   });
 }

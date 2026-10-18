@@ -468,7 +468,7 @@ export function OnboardWizard(): React.ReactElement {
                   </dd>
                 </dl>
                 <div className="row gap10" style={{ padding: '11px 14px', background: 'var(--accent-ghost)', borderRadius: 10, color: 'var(--accent-text)', fontSize: 12.5 }}>
-                  <Icon.info size={15} /> An invite email will be sent to the admin to complete setup.
+                  <Icon.info size={15} /> A welcome email will be sent to the admin with steps to set their password.
                 </div>
               </div>
             )}
