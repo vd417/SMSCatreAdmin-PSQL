@@ -5,12 +5,14 @@ import { ClientActions } from './ClientActions';
 import { ToastCtx, NavCtx } from './index';
 import type { Client } from '../api/types';
 
+const updateMutate = vi.hoisted(() => vi.fn());
 vi.mock('../api/hooks/useClientMutations', () => ({
   useSetClientStatus: () => ({ mutate: vi.fn(), isPending: false }),
   useChangeClientPlan: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteClient: () => ({ mutate: vi.fn(), isPending: false }),
   useIncreaseSeats: () => ({ mutate: vi.fn(), isPending: false }),
   useSetSeatSettings: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateClient: () => ({ mutate: updateMutate, isPending: false }),
 }));
 vi.mock('../api/hooks/usePlans', () => ({ usePlans: () => ({ data: { data: [] } }) }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: () => true }) }));
@@ -38,6 +40,20 @@ describe('ClientActions', () => {
     expect(go).toHaveBeenCalledWith('onboard', { id: 'c1' });
   });
 
+  it('edits the customer contact from the detail screen and PATCHes the changed phone', () => {
+    updateMutate.mockClear();
+    const client = { id: 'c1', status: 'active', plan_id: 'pl_gold', name: 'Greenwood', students_count: 1, staff_count: 0,
+      contact_name: 'Priya Sharma', contact_email: 'priya@school.edu', contact_phone: '9000012345' } as Client;
+    renderWithToast(<ClientActions client={client} />);
+    fireEvent.click(screen.getByText('Edit contact'));
+    fireEvent.change(screen.getByDisplayValue('9000012345'), { target: { value: '9876543210' } });
+    fireEvent.click(screen.getByText('Save changes'));
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+    expect(updateMutate.mock.calls[0][0]).toEqual({
+      contact_name: 'Priya Sharma', contact_email: 'priya@school.edu', contact_phone: '9876543210',
+    });
+  });
+
   it('hides delete when school has students or staff', () => {
     const filled = { id: 'c1', status: 'active', plan_id: 'pl_gold', name: 'Greenwood', students_count: 12, staff_count: 0 } as Client;
     renderWithToast(<ClientActions client={filled} />);
@@ -57,6 +73,7 @@ describe('ClientActions', () => {
       useDeleteClient: () => ({ mutate: vi.fn(), isPending: false }),
       useIncreaseSeats: () => ({ mutate: vi.fn(), isPending: false }),
       useSetSeatSettings: () => ({ mutate: vi.fn(), isPending: false }),
+      useUpdateClient: () => ({ mutate: vi.fn(), isPending: false }),
     }));
     vi.doMock('../api/hooks/usePlans', () => ({ usePlans: () => ({ data: { data: [] } }) }));
     const { ClientActions: Gated } = await import('./ClientActions');

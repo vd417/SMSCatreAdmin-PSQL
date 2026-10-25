@@ -3,11 +3,11 @@ import { Menu, MenuItem, ConfirmDialog, Modal, Btn, StatusBadge, useToast, useNa
 import { Icon } from '../lib/icons';
 import { useAuth } from '../auth/AuthContext';
 import {
-  useSetClientStatus, useChangeClientPlan, useIncreaseSeats, useSetSeatSettings, useUpdateClient,
+  useSetClientStatus, useChangeClientPlan, useIncreaseSeats, useSetSeatSettings,
 } from '../api/hooks/useClientMutations';
 import { useInvoices } from '../api/hooks/useInvoices';
 import { downloadInvoicePdf } from '../api/invoices';
-import { ChangePlanModal, ManageSeatsModal, ACTIONS } from './ClientActions';
+import { ChangePlanModal, ManageSeatsModal, EditContactModal, ACTIONS } from './ClientActions';
 import { QueryBoundary } from './QueryBoundary';
 import type { ApiError } from '../api/ApiError';
 import type { Client, Invoice } from '../api/types';
@@ -107,72 +107,8 @@ export function ClientRowActions({ school }: { school: Client }): React.ReactEle
 
       {invOpen && <InvoiceHistoryModal school={school} onClose={() => setInvOpen(false)} />}
 
-      {editOpen && <EditContactModal school={school} onClose={() => setEditOpen(false)} />}
+      {editOpen && <EditContactModal client={school} onClose={() => setEditOpen(false)} />}
     </>
-  );
-}
-
-/* Edit a customer's contact person — name, email, phone — when they ask to change it.
-   Sends a partial PATCH with only the fields that were filled in. */
-function EditContactModal({ school, onClose }: { school: Client; onClose: () => void }) {
-  const toast = useToast();
-  const update = useUpdateClient(school.id);
-  const [name, setName] = useState(school.contact_name ?? '');
-  const [email, setEmail] = useState(school.contact_email ?? '');
-  const [phone, setPhone] = useState(school.contact_phone ?? '');
-  const [err, setErr] = useState('');
-
-  const submit = () => {
-    const body = { contact_name: name.trim(), contact_email: email.trim(), contact_phone: phone.trim() };
-    if (!body.contact_name && !body.contact_email && !body.contact_phone) {
-      setErr('Enter a name, email, or phone to update.');
-      return;
-    }
-    if (body.contact_email && !/^[^@]+@[^@]+\.[^@]+$/.test(body.contact_email)) {
-      setErr('Enter a valid email address.');
-      return;
-    }
-    setErr('');
-    update.mutate(body, {
-      onSuccess: () => {
-        toast({ kind: 'success', title: 'Contact updated', msg: `${school.name}'s contact details were saved.` });
-        onClose();
-      },
-      onError: (e) => setErr((e as ApiError).message),
-    });
-  };
-
-  return (
-    <Modal open onClose={onClose}>
-      <div className="modal-head">
-        <div className="mh-ic" style={{ background: 'var(--accent-ghost)', color: 'var(--accent)' }}><Icon.user size={19} /></div>
-        <div className="mh-text"><h3>Edit contact</h3><p>{school.name}</p></div>
-      </div>
-      <div className="modal-body">
-        <div className="fc gap16">
-          <label className="fc gap6">
-            <span className="tiny muted" style={{ fontWeight: 600 }}>Contact name</span>
-            <input className="input" value={name} placeholder="e.g. Priya Sharma"
-              onChange={e => setName(e.target.value)} />
-          </label>
-          <label className="fc gap6">
-            <span className="tiny muted" style={{ fontWeight: 600 }}>Contact email</span>
-            <input className="input" type="email" value={email} placeholder="admin@school.edu"
-              onChange={e => setEmail(e.target.value)} />
-          </label>
-          <label className="fc gap6">
-            <span className="tiny muted" style={{ fontWeight: 600 }}>Contact phone</span>
-            <input className="input" type="tel" value={phone} placeholder="+91 90000 12345"
-              onChange={e => setPhone(e.target.value)} />
-          </label>
-          {err && <span className="err">{err}</span>}
-        </div>
-      </div>
-      <div className="modal-foot">
-        <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-        <Btn variant="primary" disabled={update.isPending} onClick={submit}>Save changes</Btn>
-      </div>
-    </Modal>
   );
 }
 

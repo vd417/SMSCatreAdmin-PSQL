@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Btn, ConfirmDialog, Modal, useToast, useNav, fmt } from './index';
 import { Icon } from '../lib/icons';
 import { useAuth } from '../auth/AuthContext';
-import { useSetClientStatus, useChangeClientPlan, useDeleteClient, useIncreaseSeats, useSetSeatSettings } from '../api/hooks/useClientMutations';
+import { useSetClientStatus, useChangeClientPlan, useDeleteClient, useIncreaseSeats, useSetSeatSettings, useUpdateClient } from '../api/hooks/useClientMutations';
 import { usePlans } from '../api/hooks/usePlans';
 import type { ApiError } from '../api/ApiError';
 import type { Client, Plan, ClientStatusAction } from '../api/types';
@@ -66,6 +66,7 @@ export function ClientActions({ client, onDeleted }: { client: Client; onDeleted
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [seatsOpen, setSeatsOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const fire = (a: ActionDef) =>
     statusMut.mutate(a.key, {
@@ -83,6 +84,9 @@ export function ClientActions({ client, onDeleted }: { client: Client; onDeleted
 
   return (
     <div className="row gap8">
+      {can('clients.manage_people') && (
+        <Btn variant="default" icon={Icon.edit} onClick={() => setEditOpen(true)}>Edit contact</Btn>
+      )}
       {can('clients.start_trial') && (
         <Btn variant="default" icon={Icon.building} onClick={() => go('onboard', { id: client.id })}>Add branch</Btn>
       )}
@@ -156,7 +160,74 @@ export function ClientActions({ client, onDeleted }: { client: Client; onDeleted
           onError: (e) => toast({ kind: 'error', title: 'Save failed', msg: (e as ApiError).message }),
         })}
       />
+
+      {editOpen && <EditContactModal client={client} onClose={() => setEditOpen(false)} />}
     </div>
+  );
+}
+
+/* Edit a customer's contact person — name, email, phone — when they ask to change it.
+   Self-contained (owns its mutation) so both the detail-screen ClientActions and the
+   Clients-list ClientRowActions can reuse it. Sends a partial PATCH. */
+export function EditContactModal({ client, onClose }: { client: Client; onClose: () => void }) {
+  const toast = useToast();
+  const update = useUpdateClient(client.id);
+  const [name, setName] = useState(client.contact_name ?? '');
+  const [email, setEmail] = useState(client.contact_email ?? '');
+  const [phone, setPhone] = useState(client.contact_phone ?? '');
+  const [err, setErr] = useState('');
+
+  const submit = () => {
+    const body = { contact_name: name.trim(), contact_email: email.trim(), contact_phone: phone.trim() };
+    if (!body.contact_name && !body.contact_email && !body.contact_phone) {
+      setErr('Enter a name, email, or phone to update.');
+      return;
+    }
+    if (body.contact_email && !/^[^@]+@[^@]+\.[^@]+$/.test(body.contact_email)) {
+      setErr('Enter a valid email address.');
+      return;
+    }
+    setErr('');
+    update.mutate(body, {
+      onSuccess: () => {
+        toast({ kind: 'success', title: 'Contact updated', msg: `${client.name}'s contact details were saved.` });
+        onClose();
+      },
+      onError: (e) => setErr((e as ApiError).message),
+    });
+  };
+
+  return (
+    <Modal open onClose={onClose}>
+      <div className="modal-head">
+        <div className="mh-ic" style={{ background: 'var(--accent-ghost)', color: 'var(--accent)' }}><Icon.user size={19} /></div>
+        <div className="mh-text"><h3>Edit contact</h3><p>{client.name}</p></div>
+      </div>
+      <div className="modal-body">
+        <div className="fc gap16">
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Contact name</span>
+            <input className="input" value={name} placeholder="e.g. Priya Sharma"
+              onChange={e => setName(e.target.value)} />
+          </label>
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Contact email</span>
+            <input className="input" type="email" value={email} placeholder="admin@school.edu"
+              onChange={e => setEmail(e.target.value)} />
+          </label>
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Contact phone</span>
+            <input className="input" type="tel" value={phone} placeholder="+91 90000 12345"
+              onChange={e => setPhone(e.target.value)} />
+          </label>
+          {err && <span className="err">{err}</span>}
+        </div>
+      </div>
+      <div className="modal-foot">
+        <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+        <Btn variant="primary" disabled={update.isPending} onClick={submit}>Save changes</Btn>
+      </div>
+    </Modal>
   );
 }
 
