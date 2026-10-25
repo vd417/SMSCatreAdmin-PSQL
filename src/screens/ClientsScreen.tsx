@@ -5,6 +5,7 @@ import {
 } from '../components';
 import { Icon } from '../lib/icons';
 import { ClientRowActions } from '../components/ClientRowActions';
+import { EditOwnerModal } from '../components/ClientActions';
 import { useAuth } from '../auth/AuthContext';
 import type { Client } from '../api/types';
 import { groupClientsByOwner, type OwnerGroup } from '../lib/ownerSchools';
@@ -52,6 +53,7 @@ export function ClientsScreen(): React.ReactElement {
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'mrr', dir: 'desc' });
   const [page, setPage] = useState(1);
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [editOwner, setEditOwner] = useState<OwnerGroup | null>(null);
 
   const query = useClients({ sort: '-mrr', limit: 200 });
   const all: Client[] = query.data?.pages.flatMap(p => p.data) ?? [];
@@ -237,6 +239,9 @@ export function ClientsScreen(): React.ReactElement {
                                 >
                                   {open ? 'Hide schools' : 'Show schools'}
                                 </MenuItem>
+                                {can('clients.manage_people') && (
+                                  <MenuItem icon={Icon.edit} onClick={() => setEditOwner(g)}>Edit owner</MenuItem>
+                                )}
                               </Menu>
                             ) : (
                               <ClientRowActions school={g.schools[0]} />
@@ -326,6 +331,7 @@ export function ClientsScreen(): React.ReactElement {
         </div>
         <Pagination page={page} pages={pages} total={sorted.length} onPage={setPage} />
       </div>
+      {editOwner && <EditOwnerModal group={editOwner} onClose={() => setEditOwner(null)} />}
     </div>
   );
 }

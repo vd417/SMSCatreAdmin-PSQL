@@ -43,6 +43,21 @@ export function useUpdateClient(id: string) {
   });
 }
 
+/** Bulk-update the owner contact (name/email/phone) across every school in an owner's
+ *  portfolio. "Owner" is a UI grouping by contact email, so this just PATCHes the same
+ *  contact fields onto each school id. All-or-reported: a failed school rejects the batch. */
+export function useUpdateOwnerContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, body }: { ids: string[]; body: UpdateClientProfileBody }) =>
+      Promise.all(ids.map(id => updateClient(id, body))),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LIST_KEY });
+      qc.invalidateQueries({ queryKey: qk.dashboard() });
+    },
+  });
+}
+
 export function useChangeClientPlan(id: string) {
   const qc = useQueryClient();
   return useMutation({
