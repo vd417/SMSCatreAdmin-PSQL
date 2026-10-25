@@ -97,7 +97,9 @@ describe('ClientActions', () => {
     } as unknown as OwnerGroup;
     renderWithToast(<EditOwnerModal group={group} onClose={() => {}} />);
     fireEvent.change(screen.getByDisplayValue('900001'), { target: { value: '9998887776' } });
-    fireEvent.click(screen.getByText('Save changes'));
+    fireEvent.click(screen.getByText('Save changes'));         // step 1: review
+    expect(ownerMutate).not.toHaveBeenCalled();                 // nothing saved yet
+    fireEvent.click(screen.getByText('Update 2 schools'));      // step 2: confirm
     expect(ownerMutate).toHaveBeenCalledTimes(1);
     expect(ownerMutate.mock.calls[0][0]).toEqual({
       ids: ['s1', 's2'],
