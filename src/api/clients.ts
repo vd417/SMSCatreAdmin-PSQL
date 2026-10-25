@@ -63,14 +63,19 @@ export function changeClientPlan(id: string, plan_id: string): Promise<Client> {
 }
 
 /** Editable client profile fields. The backend applies only the fields that are present
- *  (partial PATCH), so callers send just what changed — e.g. a new contact email/phone. */
+ *  (partial PATCH), so callers send just what changed — e.g. a new contact email/phone,
+ *  or the school's name/slug/country/address. */
 export interface UpdateClientProfileBody {
+  name?: string;
+  slug?: string;
+  country?: string;
+  address?: string;
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
 }
 
-/** Update a client's contact details (name / email / phone). PATCH /clients/{id}. */
+/** Update a client's profile (name / slug / country / address + contact). PATCH /clients/{id}. */
 export function updateClient(id: string, body: UpdateClientProfileBody): Promise<Client> {
   return request<Client>(`/clients/${id}`, { method: 'PATCH', body });
 }

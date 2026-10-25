@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useSetClientStatus, useChangeClientPlan, useDeleteClient, useIncreaseSeats, useSetSeatSettings, useUpdateClient } from '../api/hooks/useClientMutations';
 import { usePlans } from '../api/hooks/usePlans';
 import type { ApiError } from '../api/ApiError';
+import type { UpdateClientProfileBody } from '../api/clients';
 import type { Client, Plan, ClientStatusAction } from '../api/types';
 
 export type ActionDef = {
@@ -85,7 +86,7 @@ export function ClientActions({ client, onDeleted }: { client: Client; onDeleted
   return (
     <div className="row gap8">
       {can('clients.manage_people') && (
-        <Btn variant="default" icon={Icon.edit} onClick={() => setEditOpen(true)}>Edit contact</Btn>
+        <Btn variant="default" icon={Icon.edit} onClick={() => setEditOpen(true)}>Edit client</Btn>
       )}
       {can('clients.start_trial') && (
         <Btn variant="default" icon={Icon.building} onClick={() => go('onboard', { id: client.id })}>Add branch</Btn>
@@ -172,14 +173,41 @@ export function ClientActions({ client, onDeleted }: { client: Client; onDeleted
 export function EditContactModal({ client, onClose }: { client: Client; onClose: () => void }) {
   const toast = useToast();
   const update = useUpdateClient(client.id);
+  const [schoolName, setSchoolName] = useState(client.name ?? '');
+  const [slug, setSlug] = useState(client.slug ?? '');
+  const [country, setCountry] = useState(client.country ?? '');
+  const [address, setAddress] = useState(client.address ?? '');
   const [name, setName] = useState(client.contact_name ?? '');
   const [email, setEmail] = useState(client.contact_email ?? '');
   const [phone, setPhone] = useState(client.contact_phone ?? '');
   const [err, setErr] = useState('');
 
   const submit = () => {
-    const body = { contact_name: name.trim(), contact_email: email.trim(), contact_phone: phone.trim() };
-    if (!body.contact_name && !body.contact_email && !body.contact_phone) {
+    // Contact fields are always sent (trimmed). Identity fields are sent only when they
+    // actually changed, so an unchanged name/slug is never re-sent (avoids clobbering and
+    // spurious slug-uniqueness rejections) and can never be blanked by accident.
+    const body: UpdateClientProfileBody = {
+      contact_name: name.trim(), contact_email: email.trim(), contact_phone: phone.trim(),
+    };
+    const nextName = schoolName.trim();
+    const nextSlug = slug.trim();
+    const nextCountry = country.trim();
+    const nextAddress = address.trim();
+    if (nextName !== (client.name ?? '')) {
+      if (!nextName) { setErr('School name can’t be empty.'); return; }
+      body.name = nextName;
+    }
+    if (nextSlug !== (client.slug ?? '')) {
+      if (!nextSlug) { setErr('Slug can’t be empty.'); return; }
+      if (!/^[a-z0-9-]+$/.test(nextSlug)) { setErr('Slug can use only lowercase letters, numbers, and hyphens.'); return; }
+      body.slug = nextSlug;
+    }
+    if (nextCountry !== (client.country ?? '')) body.country = nextCountry;
+    if (nextAddress !== (client.address ?? '')) body.address = nextAddress;
+
+    const hasContact = !!(body.contact_name || body.contact_email || body.contact_phone);
+    const hasIdentityChange = ['name', 'slug', 'country', 'address'].some(k => k in body);
+    if (!hasContact && !hasIdentityChange) {
       setErr('Enter a name, email, or phone to update.');
       return;
     }
@@ -190,7 +218,7 @@ export function EditContactModal({ client, onClose }: { client: Client; onClose:
     setErr('');
     update.mutate(body, {
       onSuccess: () => {
-        toast({ kind: 'success', title: 'Contact updated', msg: `${client.name}'s contact details were saved.` });
+        toast({ kind: 'success', title: 'Client updated', msg: `${client.name}'s details were saved.` });
         onClose();
       },
       onError: (e) => setErr((e as ApiError).message),
@@ -201,10 +229,30 @@ export function EditContactModal({ client, onClose }: { client: Client; onClose:
     <Modal open onClose={onClose}>
       <div className="modal-head">
         <div className="mh-ic" style={{ background: 'var(--accent-ghost)', color: 'var(--accent)' }}><Icon.user size={19} /></div>
-        <div className="mh-text"><h3>Edit contact</h3><p>{client.name}</p></div>
+        <div className="mh-text"><h3>Edit client</h3><p>{client.name}</p></div>
       </div>
       <div className="modal-body">
         <div className="fc gap16">
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>School name</span>
+            <input className="input" value={schoolName} placeholder="e.g. Greenwood High"
+              onChange={e => setSchoolName(e.target.value)} />
+          </label>
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Slug</span>
+            <input className="input" value={slug} placeholder="e.g. greenwood-high"
+              onChange={e => setSlug(e.target.value)} />
+          </label>
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Country</span>
+            <input className="input" value={country} placeholder="e.g. India"
+              onChange={e => setCountry(e.target.value)} />
+          </label>
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Address</span>
+            <input className="input" value={address} placeholder="Street, city, state"
+              onChange={e => setAddress(e.target.value)} />
+          </label>
           <label className="fc gap6">
             <span className="tiny muted" style={{ fontWeight: 600 }}>Contact name</span>
             <input className="input" value={name} placeholder="e.g. Priya Sharma"
