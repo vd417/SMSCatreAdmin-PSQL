@@ -37,7 +37,7 @@ describe('ClientRowActions', () => {
     updateMutate.mockClear();
     renderRow(vi.fn(), { contact_name: 'Priya Sharma', contact_email: 'old@school.edu', contact_phone: '9000012345' });
     fireEvent.click(screen.getByRole('button')); // the ⋮ trigger
-    fireEvent.click(screen.getByText('Edit contact'));
+    fireEvent.click(screen.getByText('Edit client'));
 
     fireEvent.change(screen.getByDisplayValue('old@school.edu'), { target: { value: 'new@school.edu' } });
     fireEvent.click(screen.getByText('Save changes'));
@@ -52,7 +52,7 @@ describe('ClientRowActions', () => {
     updateMutate.mockClear();
     renderRow(vi.fn(), { contact_email: 'old@school.edu' });
     fireEvent.click(screen.getByRole('button'));
-    fireEvent.click(screen.getByText('Edit contact'));
+    fireEvent.click(screen.getByText('Edit client'));
     fireEvent.change(screen.getByDisplayValue('old@school.edu'), { target: { value: 'not-an-email' } });
     fireEvent.click(screen.getByText('Save changes'));
 

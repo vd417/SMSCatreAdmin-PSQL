@@ -45,13 +45,42 @@ describe('ClientActions', () => {
     const client = { id: 'c1', status: 'active', plan_id: 'pl_gold', name: 'Greenwood', students_count: 1, staff_count: 0,
       contact_name: 'Priya Sharma', contact_email: 'priya@school.edu', contact_phone: '9000012345' } as Client;
     renderWithToast(<ClientActions client={client} />);
-    fireEvent.click(screen.getByText('Edit contact'));
+    fireEvent.click(screen.getByText('Edit client'));
     fireEvent.change(screen.getByDisplayValue('9000012345'), { target: { value: '9876543210' } });
     fireEvent.click(screen.getByText('Save changes'));
     expect(updateMutate).toHaveBeenCalledTimes(1);
     expect(updateMutate.mock.calls[0][0]).toEqual({
       contact_name: 'Priya Sharma', contact_email: 'priya@school.edu', contact_phone: '9876543210',
     });
+  });
+
+  it('edits the school name/slug and PATCHes the changed identity fields alongside contact', () => {
+    updateMutate.mockClear();
+    const client = { id: 'c1', status: 'active', plan_id: 'pl_gold', name: 'Greenwood', slug: 'greenwood',
+      country: 'India', address: '12 MG Road', students_count: 1, staff_count: 0,
+      contact_name: 'Priya Sharma', contact_email: 'priya@school.edu', contact_phone: '9000012345' } as Client;
+    renderWithToast(<ClientActions client={client} />);
+    fireEvent.click(screen.getByText('Edit client'));
+    fireEvent.change(screen.getByDisplayValue('Greenwood'), { target: { value: 'Greenwood High' } });
+    fireEvent.change(screen.getByDisplayValue('greenwood'), { target: { value: 'greenwood-high' } });
+    fireEvent.click(screen.getByText('Save changes'));
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+    expect(updateMutate.mock.calls[0][0]).toEqual({
+      contact_name: 'Priya Sharma', contact_email: 'priya@school.edu', contact_phone: '9000012345',
+      name: 'Greenwood High', slug: 'greenwood-high',
+    });
+  });
+
+  it('blocks saving an invalid slug and does not call the mutation', () => {
+    updateMutate.mockClear();
+    const client = { id: 'c1', status: 'active', plan_id: 'pl_gold', name: 'Greenwood', slug: 'greenwood',
+      students_count: 1, staff_count: 0 } as Client;
+    renderWithToast(<ClientActions client={client} />);
+    fireEvent.click(screen.getByText('Edit client'));
+    fireEvent.change(screen.getByDisplayValue('greenwood'), { target: { value: 'Green Wood!' } });
+    fireEvent.click(screen.getByText('Save changes'));
+    expect(screen.getByText('Slug can use only lowercase letters, numbers, and hyphens.')).toBeInTheDocument();
+    expect(updateMutate).not.toHaveBeenCalled();
   });
 
   it('hides delete when school has students or staff', () => {

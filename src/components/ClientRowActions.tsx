@@ -48,7 +48,7 @@ export function ClientRowActions({ school }: { school: Client }): React.ReactEle
       <Menu trigger={<Btn variant="ghost" size="sm" icon={Icon.moreH} />}>
         <MenuItem icon={Icon.eye} onClick={() => go('client', { id: school.id })}>View details</MenuItem>
         {showEdit && (
-          <MenuItem icon={Icon.edit} onClick={() => setEditOpen(true)}>Edit contact</MenuItem>
+          <MenuItem icon={Icon.edit} onClick={() => setEditOpen(true)}>Edit client</MenuItem>
         )}
         {can('clients.start_trial') && (
           <MenuItem icon={Icon.building} onClick={() => go('onboard', { id: school.id })}>Add branch</MenuItem>
