@@ -65,7 +65,23 @@ async function parse<T>(res: Response): Promise<T> {
 // get logged out. Callers that arrive while a refresh is in flight await the same promise.
 let refreshInFlight: Promise<boolean> | null = null;
 
+// Cross-TAB single-flight. The in-flight promise above only de-dupes within one tab;
+// two tabs whose access tokens expire together would each POST the shared (rotating)
+// refresh token at once — the backend honours the first and 401s the second, which then
+// clears localStorage and logs BOTH tabs out. Serialise refreshes across tabs on a named
+// Web Lock so the losing tab waits, then reads the already-rotated token (written to
+// localStorage by the winner before it released the lock) and refreshes cleanly.
+// Falls back to in-tab single-flight where Web Locks are unavailable.
+const REFRESH_LOCK = 'catre-auth-refresh';
+function withRefreshLock(fn: () => Promise<boolean>): Promise<boolean> {
+  const nav = typeof navigator !== 'undefined'
+    ? (navigator as unknown as { locks?: { request(name: string, cb: () => Promise<boolean>): Promise<boolean> } })
+    : undefined;
+  return nav?.locks?.request ? nav.locks.request(REFRESH_LOCK, fn) : fn();
+}
+
 async function doRefresh(): Promise<boolean> {
+  // Read inside the lock callback so a tab that waited picks up the token a sibling just rotated.
   const refresh = tokenStore.getRefresh();
   if (!refresh) return false;
   const res = await rawFetch('/auth/refresh', { method: 'POST', body: { refresh_token: refresh } }, null);
@@ -77,7 +93,7 @@ async function doRefresh(): Promise<boolean> {
 
 function tryRefresh(): Promise<boolean> {
   if (!refreshInFlight) {
-    refreshInFlight = doRefresh().finally(() => { refreshInFlight = null; });
+    refreshInFlight = withRefreshLock(doRefresh).finally(() => { refreshInFlight = null; });
   }
   return refreshInFlight;
 }

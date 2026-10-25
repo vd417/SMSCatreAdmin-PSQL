@@ -95,6 +95,34 @@ describe('request', () => {
     expect(tokenStore.getRefresh()).toBe('r2');
   });
 
+  it('serializes refresh across tabs via a Web Lock and uses the latest stored refresh token', async () => {
+    // Multi-tab race: a sibling tab already rotated r1 -> r2 in shared localStorage and
+    // released the lock before this tab's refresh runs. This tab must read r2 (not the
+    // spent r1 it started with) and refresh cleanly instead of 401-ing into a logout.
+    tokenStore.set({ access_token: 'old', refresh_token: 'r2' });
+    const locksRequest = vi.fn((_name: string, cb: () => Promise<boolean>) => cb());
+    vi.stubGlobal('navigator', { locks: { request: locksRequest } });
+    const onFail = vi.fn();
+    setOnAuthFailure(onFail);
+    const fetchMock = vi.fn((url: string, init: RequestInit) => {
+      const path = new URL(url).pathname;
+      if (path.endsWith('/auth/refresh')) {
+        const sent = (JSON.parse(init.body as string) as { refresh_token: string }).refresh_token;
+        if (sent !== 'r2') return Promise.resolve(jsonResponse({ error: { code: 'invalid_token', message: 'spent' } }, 401));
+        return Promise.resolve(jsonResponse({ data: { access_token: 'new', refresh_token: 'r3' } }));
+      }
+      const auth = (init.headers as Record<string, string> | undefined)?.Authorization;
+      if (auth === 'Bearer new') return Promise.resolve(jsonResponse({ data: { ok: true } }));
+      return Promise.resolve(jsonResponse({ error: { code: 'invalid_token', message: 'exp' } }, 401));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const out = await request<{ ok: boolean }>('/secure');
+    expect(out).toEqual({ ok: true });
+    expect(locksRequest).toHaveBeenCalledWith('catre-auth-refresh', expect.any(Function));
+    expect(tokenStore.getRefresh()).toBe('r3');
+    expect(onFail).not.toHaveBeenCalled();
+  });
+
   it('calls onAuthFailure and throws when refresh also fails', async () => {
     tokenStore.set({ access_token: 'old', refresh_token: 'r1' });
     const onFail = vi.fn();
