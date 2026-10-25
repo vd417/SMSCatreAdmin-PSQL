@@ -1,11 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ClientActions } from './ClientActions';
+import { ClientActions, EditOwnerModal } from './ClientActions';
 import { ToastCtx, NavCtx } from './index';
 import type { Client } from '../api/types';
+import type { OwnerGroup } from '../lib/ownerSchools';
 
 const updateMutate = vi.hoisted(() => vi.fn());
+const ownerMutate = vi.hoisted(() => vi.fn());
 vi.mock('../api/hooks/useClientMutations', () => ({
   useSetClientStatus: () => ({ mutate: vi.fn(), isPending: false }),
   useChangeClientPlan: () => ({ mutate: vi.fn(), isPending: false }),
@@ -13,6 +15,7 @@ vi.mock('../api/hooks/useClientMutations', () => ({
   useIncreaseSeats: () => ({ mutate: vi.fn(), isPending: false }),
   useSetSeatSettings: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateClient: () => ({ mutate: updateMutate, isPending: false }),
+  useUpdateOwnerContact: () => ({ mutate: ownerMutate, isPending: false }),
 }));
 vi.mock('../api/hooks/usePlans', () => ({ usePlans: () => ({ data: { data: [] } }) }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: () => true }) }));
@@ -81,6 +84,38 @@ describe('ClientActions', () => {
     fireEvent.click(screen.getByText('Save changes'));
     expect(screen.getByText('Slug can use only lowercase letters, numbers, and hyphens.')).toBeInTheDocument();
     expect(updateMutate).not.toHaveBeenCalled();
+  });
+
+  it('edits the owner and bulk-PATCHes the contact to every school in the portfolio', () => {
+    ownerMutate.mockClear();
+    const group = {
+      key: 'akash@yopmail.com', email: 'akash@yopmail.com', ownerName: 'Akash Gupta', mrr: 10000,
+      schools: [
+        { id: 's1', name: 'ITM', contact_name: 'Akash Gupta', contact_email: 'akash@yopmail.com', contact_phone: '900001' },
+        { id: 's2', name: 'VITM', contact_name: 'Akash Gupta', contact_email: 'akash@yopmail.com', contact_phone: '900001' },
+      ],
+    } as unknown as OwnerGroup;
+    renderWithToast(<EditOwnerModal group={group} onClose={() => {}} />);
+    fireEvent.change(screen.getByDisplayValue('900001'), { target: { value: '9998887776' } });
+    fireEvent.click(screen.getByText('Save changes'));
+    expect(ownerMutate).toHaveBeenCalledTimes(1);
+    expect(ownerMutate.mock.calls[0][0]).toEqual({
+      ids: ['s1', 's2'],
+      body: { contact_name: 'Akash Gupta', contact_email: 'akash@yopmail.com', contact_phone: '9998887776' },
+    });
+  });
+
+  it('blocks owner edit with an invalid email and does not call the mutation', () => {
+    ownerMutate.mockClear();
+    const group = {
+      key: 'solo', email: null, ownerName: 'Solo', mrr: 0,
+      schools: [{ id: 's1', name: 'Solo', contact_name: 'Solo', contact_email: 'x@y.com', contact_phone: '' }],
+    } as unknown as OwnerGroup;
+    renderWithToast(<EditOwnerModal group={group} onClose={() => {}} />);
+    fireEvent.change(screen.getByDisplayValue('x@y.com'), { target: { value: 'not-an-email' } });
+    fireEvent.click(screen.getByText('Save changes'));
+    expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument();
+    expect(ownerMutate).not.toHaveBeenCalled();
   });
 
   it('hides delete when school has students or staff', () => {

@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Btn, ConfirmDialog, Modal, useToast, useNav, fmt } from './index';
 import { Icon } from '../lib/icons';
 import { useAuth } from '../auth/AuthContext';
-import { useSetClientStatus, useChangeClientPlan, useDeleteClient, useIncreaseSeats, useSetSeatSettings, useUpdateClient } from '../api/hooks/useClientMutations';
+import { useSetClientStatus, useChangeClientPlan, useDeleteClient, useIncreaseSeats, useSetSeatSettings, useUpdateClient, useUpdateOwnerContact } from '../api/hooks/useClientMutations';
 import { usePlans } from '../api/hooks/usePlans';
 import type { ApiError } from '../api/ApiError';
 import type { UpdateClientProfileBody } from '../api/clients';
+import type { OwnerGroup } from '../lib/ownerSchools';
 import type { Client, Plan, ClientStatusAction } from '../api/types';
 
 export type ActionDef = {
@@ -265,6 +266,77 @@ export function EditContactModal({ client, onClose }: { client: Client; onClose:
           </label>
           <label className="fc gap6">
             <span className="tiny muted" style={{ fontWeight: 600 }}>Contact phone</span>
+            <input className="input" type="tel" value={phone} placeholder="+91 90000 12345"
+              onChange={e => setPhone(e.target.value)} />
+          </label>
+          {err && <span className="err">{err}</span>}
+        </div>
+      </div>
+      <div className="modal-foot">
+        <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+        <Btn variant="primary" disabled={update.isPending} onClick={submit}>Save changes</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+/** Edit the owner's contact (name/email/phone) across ALL schools in their portfolio.
+ *  "Owner" is a UI grouping by contact email, so this writes the same contact fields to
+ *  every school in the group. Changing the email keeps the group intact (all schools move
+ *  to the new email together). */
+export function EditOwnerModal({ group, onClose }: { group: OwnerGroup; onClose: () => void }) {
+  const toast = useToast();
+  const update = useUpdateOwnerContact();
+  const first = group.schools[0];
+  const [name, setName] = useState(group.ownerName ?? first?.contact_name ?? '');
+  const [email, setEmail] = useState(group.email ?? first?.contact_email ?? '');
+  const [phone, setPhone] = useState(group.schools.map(s => (s.contact_phone ?? '').trim()).find(Boolean) ?? '');
+  const [err, setErr] = useState('');
+  const count = group.schools.length;
+
+  const submit = () => {
+    const body: UpdateClientProfileBody = {
+      contact_name: name.trim(), contact_email: email.trim(), contact_phone: phone.trim(),
+    };
+    if (!body.contact_name && !body.contact_email && !body.contact_phone) {
+      setErr('Enter a name, email, or phone to update.');
+      return;
+    }
+    if (body.contact_email && !/^[^@]+@[^@]+\.[^@]+$/.test(body.contact_email)) {
+      setErr('Enter a valid email address.');
+      return;
+    }
+    setErr('');
+    update.mutate({ ids: group.schools.map(s => s.id), body }, {
+      onSuccess: () => {
+        toast({ kind: 'success', title: 'Owner updated', msg: `Contact saved across ${count} school${count === 1 ? '' : 's'}.` });
+        onClose();
+      },
+      onError: (e) => setErr((e as ApiError).message),
+    });
+  };
+
+  return (
+    <Modal open onClose={onClose}>
+      <div className="modal-head">
+        <div className="mh-ic" style={{ background: 'var(--accent-ghost)', color: 'var(--accent)' }}><Icon.user size={19} /></div>
+        <div className="mh-text"><h3>Edit owner</h3><p>{name || email || 'Owner'}</p></div>
+      </div>
+      <div className="modal-body">
+        <div className="fc gap16">
+          <div className="tiny muted">Applies to all <b>{count}</b> school{count === 1 ? '' : 's'} under this owner.</div>
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Owner name</span>
+            <input className="input" value={name} placeholder="e.g. Akash Gupta"
+              onChange={e => setName(e.target.value)} />
+          </label>
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Owner email</span>
+            <input className="input" type="email" value={email} placeholder="owner@email.com"
+              onChange={e => setEmail(e.target.value)} />
+          </label>
+          <label className="fc gap6">
+            <span className="tiny muted" style={{ fontWeight: 600 }}>Owner phone</span>
             <input className="input" type="tel" value={phone} placeholder="+91 90000 12345"
               onChange={e => setPhone(e.target.value)} />
           </label>
