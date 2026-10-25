@@ -292,12 +292,18 @@ export function EditOwnerModal({ group, onClose }: { group: OwnerGroup; onClose:
   const [email, setEmail] = useState(group.email ?? first?.contact_email ?? '');
   const [phone, setPhone] = useState(group.schools.map(s => (s.contact_phone ?? '').trim()).find(Boolean) ?? '');
   const [err, setErr] = useState('');
+  const [confirming, setConfirming] = useState(false);
   const count = group.schools.length;
+  const plural = count === 1 ? '' : 's';
 
-  const submit = () => {
-    const body: UpdateClientProfileBody = {
-      contact_name: name.trim(), contact_email: email.trim(), contact_phone: phone.trim(),
-    };
+  const buildBody = (): UpdateClientProfileBody => ({
+    contact_name: name.trim(), contact_email: email.trim(), contact_phone: phone.trim(),
+  });
+
+  // Step 1: validate, then move to the confirmation step (bulk update is a multi-school
+  // write, so we ask before applying it).
+  const review = () => {
+    const body = buildBody();
     if (!body.contact_name && !body.contact_email && !body.contact_phone) {
       setErr('Enter a name, email, or phone to update.');
       return;
@@ -307,12 +313,17 @@ export function EditOwnerModal({ group, onClose }: { group: OwnerGroup; onClose:
       return;
     }
     setErr('');
-    update.mutate({ ids: group.schools.map(s => s.id), body }, {
+    setConfirming(true);
+  };
+
+  // Step 2: actually apply to every school in the portfolio.
+  const applyUpdate = () => {
+    update.mutate({ ids: group.schools.map(s => s.id), body: buildBody() }, {
       onSuccess: () => {
-        toast({ kind: 'success', title: 'Owner updated', msg: `Contact saved across ${count} school${count === 1 ? '' : 's'}.` });
+        toast({ kind: 'success', title: 'Owner updated', msg: `Contact saved across ${count} school${plural}.` });
         onClose();
       },
-      onError: (e) => setErr((e as ApiError).message),
+      onError: (e) => { setErr((e as ApiError).message); setConfirming(false); },
     });
   };
 
@@ -320,32 +331,54 @@ export function EditOwnerModal({ group, onClose }: { group: OwnerGroup; onClose:
     <Modal open onClose={onClose}>
       <div className="modal-head">
         <div className="mh-ic" style={{ background: 'var(--accent-ghost)', color: 'var(--accent)' }}><Icon.user size={19} /></div>
-        <div className="mh-text"><h3>Edit owner</h3><p>{name || email || 'Owner'}</p></div>
+        <div className="mh-text"><h3>{confirming ? 'Confirm owner update' : 'Edit owner'}</h3><p>{name || email || 'Owner'}</p></div>
       </div>
       <div className="modal-body">
-        <div className="fc gap16">
-          <div className="tiny muted">Applies to all <b>{count}</b> school{count === 1 ? '' : 's'} under this owner.</div>
-          <label className="fc gap6">
-            <span className="tiny muted" style={{ fontWeight: 600 }}>Owner name</span>
-            <input className="input" value={name} placeholder="e.g. Akash Gupta"
-              onChange={e => setName(e.target.value)} />
-          </label>
-          <label className="fc gap6">
-            <span className="tiny muted" style={{ fontWeight: 600 }}>Owner email</span>
-            <input className="input" type="email" value={email} placeholder="owner@email.com"
-              onChange={e => setEmail(e.target.value)} />
-          </label>
-          <label className="fc gap6">
-            <span className="tiny muted" style={{ fontWeight: 600 }}>Owner phone</span>
-            <input className="input" type="tel" value={phone} placeholder="+91 90000 12345"
-              onChange={e => setPhone(e.target.value)} />
-          </label>
-          {err && <span className="err">{err}</span>}
-        </div>
+        {confirming ? (
+          <div className="fc gap12">
+            <div className="tiny">Update the owner contact on <b>{count}</b> school{plural}?</div>
+            <ul className="tiny muted" style={{ margin: 0, paddingLeft: 18 }}>
+              {group.schools.map(s => <li key={s.id}>{s.name}</li>)}
+            </ul>
+            <div className="tiny">
+              Name: <b>{name.trim() || '—'}</b> · Email: <b>{email.trim() || '—'}</b> · Phone: <b>{phone.trim() || '—'}</b>
+            </div>
+            {err && <span className="err">{err}</span>}
+          </div>
+        ) : (
+          <div className="fc gap16">
+            <div className="tiny muted">Applies to all <b>{count}</b> school{plural} under this owner.</div>
+            <label className="fc gap6">
+              <span className="tiny muted" style={{ fontWeight: 600 }}>Owner name</span>
+              <input className="input" value={name} placeholder="e.g. Akash Gupta"
+                onChange={e => setName(e.target.value)} />
+            </label>
+            <label className="fc gap6">
+              <span className="tiny muted" style={{ fontWeight: 600 }}>Owner email</span>
+              <input className="input" type="email" value={email} placeholder="owner@email.com"
+                onChange={e => setEmail(e.target.value)} />
+            </label>
+            <label className="fc gap6">
+              <span className="tiny muted" style={{ fontWeight: 600 }}>Owner phone</span>
+              <input className="input" type="tel" value={phone} placeholder="+91 90000 12345"
+                onChange={e => setPhone(e.target.value)} />
+            </label>
+            {err && <span className="err">{err}</span>}
+          </div>
+        )}
       </div>
       <div className="modal-foot">
-        <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-        <Btn variant="primary" disabled={update.isPending} onClick={submit}>Save changes</Btn>
+        {confirming ? (
+          <>
+            <Btn variant="ghost" onClick={() => setConfirming(false)}>Back</Btn>
+            <Btn variant="primary" disabled={update.isPending} onClick={applyUpdate}>Update {count} school{plural}</Btn>
+          </>
+        ) : (
+          <>
+            <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+            <Btn variant="primary" onClick={review}>Save changes</Btn>
+          </>
+        )}
       </div>
     </Modal>
   );
