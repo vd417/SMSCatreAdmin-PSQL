@@ -260,9 +260,13 @@ export function ClientDetailScreen(): React.ReactElement {
               <div className="card" style={{ marginTop: 16, padding: 16 }}>
                 <b>Seats &amp; history</b>
                 <div className="detail-grid" style={{ marginTop: 12 }}>
+                  {/* Billed seats are the operative cap the customer is held to (raising it is
+                      a paid seat increase). The plan's limits.students is only the ceiling that
+                      cap can be raised up to, so it is labelled "Plan max capacity" — not "limit",
+                      which previously read as the live cap and mismatched the billed seats. */}
                   <Detail label="Billed seats" value={fmt.num(detail.data.students_count ?? 0)} />
                   <Detail label="Live enrolled" value={fmt.num(detail.data.enrolled_students ?? detail.data.students_count ?? 0)} />
-                  <Detail label="Plan student limit" value={detail.data.limits?.students ? fmt.num(detail.data.limits.students) : '—'} />
+                  <Detail label="Plan max capacity" value={detail.data.limits?.students ? fmt.num(detail.data.limits.students) : '—'} />
                   <Detail label="Increase mode" value={detail.data.seat_increase_mode ?? 'manual'} />
                 </div>
                 <div style={{ marginTop: 16 }}>

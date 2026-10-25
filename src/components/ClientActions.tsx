@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Btn, ConfirmDialog, Modal, useToast, fmt } from './index';
+import { Btn, ConfirmDialog, Modal, useToast, useNav, fmt } from './index';
 import { Icon } from '../lib/icons';
 import { useAuth } from '../auth/AuthContext';
 import { useSetClientStatus, useChangeClientPlan, useDeleteClient, useIncreaseSeats, useSetSeatSettings } from '../api/hooks/useClientMutations';
@@ -56,6 +56,7 @@ const BY_STATUS: Record<string, ClientStatusAction[]> = {
 export function ClientActions({ client, onDeleted }: { client: Client; onDeleted?: () => void }): React.ReactElement {
   const { can } = useAuth();
   const toast = useToast();
+  const { go } = useNav();
   const statusMut = useSetClientStatus(client.id);
   const planMut = useChangeClientPlan(client.id);
   const deleteMut = useDeleteClient(client.id);
@@ -82,6 +83,9 @@ export function ClientActions({ client, onDeleted }: { client: Client; onDeleted
 
   return (
     <div className="row gap8">
+      {can('clients.start_trial') && (
+        <Btn variant="default" icon={Icon.building} onClick={() => go('onboard', { id: client.id })}>Add branch</Btn>
+      )}
       {showChangePlan && (
         <Btn variant="default" icon={Icon.plans} disabled={planMut.isPending} onClick={() => setPlanOpen(true)}>Force change (no payment)</Btn>
       )}

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { listClients, getClient, getClientUsage, getClientActivity, createClient, setClientStatus, changeClientPlan } from './clients';
+import { listClients, getClient, getClientUsage, getClientActivity, createClient, setClientStatus, changeClientPlan, updateClient } from './clients';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -109,5 +109,18 @@ describe('changeClientPlan', () => {
     expect(String(url)).toContain('/clients/c1/change-plan');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body)).toEqual({ plan_id: 'pl_platinum' });
+  });
+});
+
+describe('updateClient', () => {
+  it('PATCHes /clients/{id} with the contact fields', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: { id: 'c1' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const out = await updateClient('c1', { contact_name: 'Asha', contact_email: 'asha@s.edu', contact_phone: '9000012345' });
+    expect(out).toEqual({ id: 'c1' });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/clients/c1');
+    expect(init.method).toBe('PATCH');
+    expect(JSON.parse(init.body)).toEqual({ contact_name: 'Asha', contact_email: 'asha@s.edu', contact_phone: '9000012345' });
   });
 });

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ClientActions } from './ClientActions';
-import { ToastCtx } from './index';
+import { ToastCtx, NavCtx } from './index';
 import type { Client } from '../api/types';
 
 vi.mock('../api/hooks/useClientMutations', () => ({
@@ -24,6 +24,18 @@ describe('ClientActions', () => {
     const empty = { id: 'c1', status: 'trial', plan_id: 'pl_gold', name: 'Empty', students_count: 0, staff_count: 0 } as Client;
     renderWithToast(<ClientActions client={empty} />);
     expect(screen.getByText('Delete')).toBeInTheDocument();
+  });
+
+  it('offers Add branch that opens the onboard wizard for the customer', () => {
+    const go = vi.fn();
+    const client = { id: 'c1', status: 'active', plan_id: 'pl_gold', name: 'Greenwood', students_count: 1, staff_count: 0 } as Client;
+    render(
+      <NavCtx.Provider value={{ route: { name: 'client', params: {} }, go }}>
+        <ToastCtx.Provider value={() => {}}><ClientActions client={client} /></ToastCtx.Provider>
+      </NavCtx.Provider>,
+    );
+    fireEvent.click(screen.getByText('Add branch'));
+    expect(go).toHaveBeenCalledWith('onboard', { id: 'c1' });
   });
 
   it('hides delete when school has students or staff', () => {

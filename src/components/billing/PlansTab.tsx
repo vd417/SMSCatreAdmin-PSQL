@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { useToast, Btn, fmt } from '../index';
 import { Icon } from '../../lib/icons';
 import { FEATURE_LABELS } from '../../lib/featureCatalog';
+import { isPerStudent } from '../../lib/planPricing';
 import { PlanEditModal } from './PlanEditModal';
 import type { PlanDraft } from './PlanEditModal';
 import { QueryBoundary } from '../QueryBoundary';
@@ -33,12 +34,14 @@ const AUD: Record<string, { label: string; cls: string }> = {
   exclusive: { label: 'Exclusive', cls: 'badge-violet' },
 };
 
-function planToDraft(p: Plan): PlanDraft {
+export function planToDraft(p: Plan): PlanDraft {
   return {
     id: p.id,
     name: p.name,
     band: p.band,
-    pricing: p.pricing as 'flat' | 'per_student',
+    // Canonicalise: the API may store mixed case (e.g. 'Per_Student'), but the edit
+    // modal keys its segmented control on the exact literal. Saving writes it back clean.
+    pricing: isPerStudent(p) ? 'per_student' : 'flat',
     price: p.price,
     per_student: p.per_student,
     min_students: p.min_students,
@@ -95,7 +98,7 @@ export function PlansTab(): React.ReactElement {
     exclusive:  plans.filter(p => p.audience === 'exclusive').length,
   };
 
-  const priceLabel = (p: Plan) => p.pricing === 'per_student'
+  const priceLabel = (p: Plan) => isPerStudent(p)
     ? { big: fmt.money(p.per_student), small: ' / student / mo' }
     : { big: fmt.money(p.price),       small: ' / ' + p.period };
 
@@ -159,7 +162,7 @@ export function PlansTab(): React.ReactElement {
               {p.visibility === 'published' ? 'Published' : 'Draft'}
             </span>
             <span className={'badge ' + audMeta.cls}>{audMeta.label}</span>
-            {p.pricing === 'per_student' && <span className="badge badge-blue">Metered</span>}
+            {isPerStudent(p) && <span className="badge badge-blue">Metered</span>}
           </div>
 
           {/* Price */}
@@ -190,7 +193,7 @@ export function PlansTab(): React.ReactElement {
           {/* Limits */}
           <div className="fc gap8">
             {([
-              ['Students', p.pricing === 'per_student' ? 'min ' + fmt.num(p.min_students) : fmt.num((p.limits as Record<string, number>).students)],
+              ['Students', isPerStudent(p) ? 'min ' + fmt.num(p.min_students) : fmt.num((p.limits as Record<string, number>).students)],
               ['Staff',    fmt.num((p.limits as Record<string, number>).staff)],
               ['Storage',  (p.limits as Record<string, number>).storage_gb + ' GB'],
             ] as [string, string][]).map(([k, v]) => (

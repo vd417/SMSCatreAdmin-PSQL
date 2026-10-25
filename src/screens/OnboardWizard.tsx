@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNav, useToast, Btn, Avatar, fmt } from '../components';
 import { Icon } from '../lib/icons';
 import { usePlans } from '../api/hooks/usePlans';
 import { useTeam } from '../api/hooks/useTeam';
 import { useCreateClient } from '../api/hooks/useClientMutations';
+import { useClients } from '../api/hooks/useClients';
+import { useClient } from '../api/hooks/useClient';
+import { findDuplicateClient } from '../lib/duplicateClient';
+import { isPerStudent } from '../lib/planPricing';
 import { fileToIdProof, ID_PROOF_ACCEPT } from '../api/team';
 import type { ApiError } from '../api/ApiError';
 import type { Plan, CreateClientBody, ClientStatus, Client } from '../api/types';
@@ -36,7 +40,7 @@ const STATES = [
 ];
 const SIZES = ['Under 200', '200–500', '500–1,200', '1,200–5,000', '5,000+'];
 const TRIAL_PRESETS: { days: number; note: string }[] = [
-  { days: 7, note: 'week' }, { days: 14, note: 'default' }, { days: 30, note: 'month' },
+  { days: 7, note: 'default' }, { days: 14, note: '2 weeks' }, { days: 30, note: 'month' },
   { days: 60, note: '2 months' }, { days: 90, note: 'quarter' }, { days: 365, note: 'year' },
 ];
 
@@ -64,6 +68,16 @@ export function OnboardWizard(): React.ReactElement {
   const plans: Plan[] = data?.data ?? [];
   const team = useTeam();
   const create = useCreateClient();
+  // Existing clients for the duplicate-customer guard. The list endpoint returns
+  // every client in one page (no server pagination), so this scan is complete.
+  const clientsQ = useClients({});
+  const existingClients = (clientsQ.data?.pages ?? []).flatMap(p => p.data);
+
+  // Branch mode: adding another school for an existing customer. The route carries
+  // that customer's id; the new school links to them by sharing the admin email.
+  const branchId = (nav.route?.params?.id as string | undefined) ?? '';
+  const branchMode = !!branchId;
+  const branchCustomer = useClient(branchId).data;
 
   const salesPeople = (team.data?.data ?? []).filter(m =>
     m.status === 'active' && (m.role === 'sales' || m.role === 'admin' || m.role === 'owner'));
@@ -74,46 +88,86 @@ export function OnboardWizard(): React.ReactElement {
   const [form, setForm] = useState<Form>({
     name: '', slug: '', state: '', address: '', size: '', status: 'trial',
     adminName: '', adminEmail: '', adminPhone: '', idProofType: '', idProofUrl: '',
-    plan_id: plans[0]?.id ?? '', trial: 14, csm: '', studentsCount: 0,
+    plan_id: plans[0]?.id ?? '', trial: 7, csm: '', studentsCount: 0,
     payChoice: 'trial',
   });
   const [idProofName, setIdProofName] = useState('');
   const set = (k: keyof Form, v: string | number) =>
     setForm(d => ({ ...d, [k]: v, ...(k === 'name' ? { slug: String(v).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') } : {}) }));
 
-  const steps = [
-    { title: 'School details', desc: 'Tell us about the school' },
-    { title: 'Admin contact', desc: 'Who will administer the account' },
-    { title: 'Plan & payment', desc: 'Choose plan and how they pay' },
-    { title: 'Trial length', desc: 'Set the evaluation period' },
-    { title: 'Review', desc: 'Confirm and create' },
-  ];
+  // Inherit the customer's contact for a branch — email must match to keep the schools linked.
+  useEffect(() => {
+    if (!branchCustomer) return;
+    setForm(d => ({
+      ...d,
+      adminName: branchCustomer.contact_name ?? d.adminName,
+      adminEmail: branchCustomer.contact_email ?? d.adminEmail,
+      adminPhone: branchCustomer.contact_phone ?? d.adminPhone,
+    }));
+  }, [branchCustomer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Steps are keyed so branch mode can drop 'admin' without breaking step indices.
+  const STEP_META = {
+    school: { title: 'School details', desc: 'Tell us about the school' },
+    admin: { title: 'Admin contact', desc: 'Who will administer the account' },
+    plan: { title: 'Plan & payment', desc: 'Choose plan and how they pay' },
+    trial: { title: 'Trial length', desc: 'Set the evaluation period' },
+    review: { title: 'Review', desc: 'Confirm and create' },
+  } as const;
+  type StepKey = keyof typeof STEP_META;
+  const stepKeys: StepKey[] = branchMode
+    ? ['school', 'plan', 'trial', 'review'] // a branch inherits the customer's admin contact
+    : ['school', 'admin', 'plan', 'trial', 'review'];
+  const steps = stepKeys.map(k => STEP_META[k]);
+  const current = stepKeys[step];
+  const stepIndex = (k: StepKey) => stepKeys.indexOf(k);
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (step === 0) { if (!form.name.trim()) e.name = 'School name is required'; if (!form.slug.trim()) e.slug = 'Workspace URL is required'; }
-    if (step === 1) {
+    if (current === 'school') { if (!form.name.trim()) e.name = 'School name is required'; if (!form.slug.trim()) e.slug = 'Workspace URL is required'; }
+    if (current === 'admin') {
       if (!form.adminName.trim()) e.adminName = 'Admin name is required';
       if (!/^[^@]+@[^@]+\.[^@]+$/.test(form.adminEmail)) e.adminEmail = 'Valid email required';
       if (!form.idProofType) e.idProofType = 'ID type is required';
       if (!form.idProofUrl) e.idProofUrl = 'ID proof document is required';
     }
-    if (step === 2) {
+    if (current === 'plan') {
       if (!form.plan_id) e.plan_id = 'Select a plan';
       if (!form.payChoice) e.payChoice = 'Select a payment method';
+      // Per-student plans bill on the count, so it's required before continuing.
+      const selPlan = plans.find(p => p.id === form.plan_id) ?? plans[0];
+      if (isPerStudent(selPlan) && !(form.studentsCount > 0)) {
+        e.students_count = 'Enter the number of students';
+      }
     }
     setErrors(e); return Object.keys(e).length === 0;
   };
+  // Block onboarding when this admin email/phone already belongs to a client:
+  // tell the user, then open that customer. Returns true when a duplicate was handled.
+  const handleDuplicate = (): boolean => {
+    if (branchMode) return false; // a branch intentionally reuses the customer's email
+    const dup = findDuplicateClient(existingClients, form.adminEmail, form.adminPhone);
+    if (!dup) return false;
+    toast({
+      kind: 'error',
+      title: 'Customer already registered',
+      msg: `${form.adminEmail || form.adminPhone} is already registered to ${dup.name}. Opening that customer.`,
+    });
+    nav.go('client', { id: dup.id });
+    return true;
+  };
+
   const next = () => {
     if (!validate()) return;
-    if (step === 2 && form.payChoice !== 'trial') {
-      setStep(4); // skip trial length when collecting payment now
+    if (current === 'admin' && handleDuplicate()) return;
+    if (current === 'plan' && form.payChoice !== 'trial') {
+      setStep(stepIndex('review')); // skip trial length when collecting payment now
       return;
     }
     setStep(s => Math.min(s + 1, steps.length - 1));
   };
   const back = () => {
-    if (step === 4 && form.payChoice !== 'trial') { setStep(2); return; }
+    if (current === 'review' && form.payChoice !== 'trial') { setStep(stepIndex('plan')); return; }
     setStep(s => Math.max(s - 1, 0));
   };
 
@@ -202,6 +256,7 @@ export function OnboardWizard(): React.ReactElement {
   };
 
   const submit = () => {
+    if (handleDuplicate()) return; // safety net if a duplicate slipped past the admin step
     const selPlan = plans.find(p => p.id === form.plan_id) ?? plans[0];
     const body: CreateClientBody = {
       name: form.name, slug: form.slug, country: form.state, size: form.size,
@@ -211,14 +266,20 @@ export function OnboardWizard(): React.ReactElement {
       plan_id: form.plan_id || plans[0]?.id || '', trial_days: form.payChoice === 'trial' ? form.trial : 0,
       csm: form.csm || null,
       // Only per-student plans bill on the count; flat plans ignore it.
-      students_count: selPlan?.pricing === 'per_student' ? form.studentsCount : undefined,
+      students_count: isPerStudent(selPlan) ? form.studentsCount : undefined,
     };
     setPaying(true);
     create.mutate(body, {
       onSuccess: async (client) => {
         try {
           if (form.payChoice === 'trial') {
-            toast({ kind: 'success', title: 'Client created', msg: `${form.name} is now in trial.` });
+            toast({
+              kind: 'success',
+              title: branchMode ? 'Branch created' : 'Client created',
+              msg: branchMode
+                ? `${form.name} added under ${branchCustomer?.name ?? 'the customer'} — now in trial.`
+                : `${form.name} is now in trial.`,
+            });
             nav.go('clients');
             return;
           }
@@ -236,13 +297,18 @@ export function OnboardWizard(): React.ReactElement {
 
   const plan = plans.find(p => p.id === form.plan_id) ?? plans[0];
   const busy = create.isPending || paying;
+  // Trial end date derived from the chosen length — the trial starts today.
+  const trialEndLabel = new Date(Date.now() + (form.trial || 0) * 86400000)
+    .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
     <div className="page" style={{ maxWidth: 880 }}>
       <button className="row gap6 muted tiny" style={{ marginBottom: 14, fontWeight: 600 }} onClick={() => nav.go('clients')}>
         <Icon.chevLeft size={14} /> Cancel
       </button>
-      <h1 className="page-title" style={{ marginBottom: 22 }}>Onboard a new client</h1>
+      <h1 className="page-title" style={{ marginBottom: 22 }}>
+        {branchMode ? `Add a branch for ${branchCustomer?.name ?? '…'}` : 'Onboard a new client'}
+      </h1>
 
       <div className="split split-left aside-210" style={{ gap: 28 }}>
         <div className="fc gap2">
@@ -263,7 +329,7 @@ export function OnboardWizard(): React.ReactElement {
         <div className="card">
           <div className="card-head"><div className="f1"><h3>{steps[step].title}</h3><div className="sub">{steps[step].desc}</div></div></div>
           <div className="card-pad" style={{ minHeight: 260 }}>
-            {step === 0 && (
+            {current === 'school' && (
               <div className="fc gap16">
                 <Field label="School name" k="name" form={form} set={set} errors={errors} placeholder="e.g. Greenwood High" />
                 <Field label="Workspace URL" k="slug" form={form} set={set} errors={errors} prefix="catre.app/" hint="Auto-generated from the name; editable." />
@@ -281,7 +347,7 @@ export function OnboardWizard(): React.ReactElement {
               </div>
             )}
 
-            {step === 1 && (
+            {current === 'admin' && (
               <div className="fc gap16">
                 <Field label="Admin full name" k="adminName" form={form} set={set} errors={errors} placeholder="e.g. Priya Sharma" />
                 <Field label="Admin email" k="adminEmail" form={form} set={set} errors={errors} type="email" placeholder="admin@school.edu" hint="They'll receive an invite to set up the account." />
@@ -330,7 +396,7 @@ export function OnboardWizard(): React.ReactElement {
               </div>
             )}
 
-            {step === 2 && (
+            {current === 'plan' && (
               <div className="fc gap16">
                 <div className="fc gap10">
                   {plans.map(p => (
@@ -341,7 +407,11 @@ export function OnboardWizard(): React.ReactElement {
                       <div className="row jb">
                         <div className="row gap10"><span style={{ width: 11, height: 11, borderRadius: 3, background: p.color }} />
                           <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</span></div>
-                        <span className="mono" style={{ fontWeight: 700 }}>{fmt.money(p.price)}<span className="tiny muted">/mo</span></span>
+                        <span className="mono" style={{ fontWeight: 700 }}>
+                          {isPerStudent(p)
+                            ? <>{fmt.money(p.per_student || 0)}<span className="tiny muted">/student/mo</span></>
+                            : <>{fmt.money(p.price)}<span className="tiny muted">/mo</span></>}
+                        </span>
                       </div>
                       <div className="tiny muted" style={{ marginTop: 6 }}>{p.description}</div>
                       <div className="tiny muted mono" style={{ marginTop: 8 }}>{fmt.num(p.limits.students)} students · {fmt.num(p.limits.staff)} staff · {p.limits.storage_gb} GB</div>
@@ -350,7 +420,7 @@ export function OnboardWizard(): React.ReactElement {
                   {errors.plan_id && <span className="err">{errors.plan_id}</span>}
                 </div>
 
-                {plan?.pricing === 'per_student' && (() => {
+                {isPerStudent(plan) && (() => {
                   const rate = plan.per_student || 0;
                   const min = plan.min_students || 0;
                   const cap = (plan.limits as Record<string, number>)?.students ?? 0;
@@ -382,6 +452,7 @@ export function OnboardWizard(): React.ReactElement {
                           <>Enter the school's student count to estimate the monthly bill.</>
                         )}
                       </span>
+                      {errors.students_count && <span className="err">{errors.students_count}</span>}
                     </div>
                   );
                 })()}
@@ -408,7 +479,7 @@ export function OnboardWizard(): React.ReactElement {
               </div>
             )}
 
-            {step === 3 && (
+            {current === 'trial' && (
               <div>
                 <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-2)' }}>Trial length</label>
                 <div className="row gap8 fw" style={{ marginTop: 12 }}>
@@ -429,11 +500,13 @@ export function OnboardWizard(): React.ReactElement {
                     <span className="tiny muted">days</span>
                   </div>
                 </div>
-                <p className="tiny muted" style={{ marginTop: 16 }}>The trial begins immediately. The client can be activated any time before it ends.</p>
+                <p className="tiny muted" style={{ marginTop: 16 }}>
+                  The trial begins immediately — <b>Ends {trialEndLabel}</b> ({form.trial || 0} days). The client can be activated any time before it ends.
+                </p>
               </div>
             )}
 
-            {step === 4 && (
+            {current === 'review' && (
               <div className="fc gap16">
                 <div className="row gap12" style={{ padding: '14px 16px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border-soft)' }}>
                   <Avatar name={form.name || 'New School'} size={44} square />
@@ -445,14 +518,15 @@ export function OnboardWizard(): React.ReactElement {
                 <dl className="dl">
                   <dt>State</dt><dd>{form.state || '—'}</dd>
                   <dt>Address</dt><dd>{form.address || '—'}</dd>
-                  <dt>Admin</dt><dd>{form.adminName || '—'} · {form.adminEmail || '—'}</dd>
+                  <dt>{branchMode ? 'Branch of' : 'Admin'}</dt>
+                  <dd>{branchMode ? `${branchCustomer?.name ?? '—'} · ${form.adminEmail || '—'}` : `${form.adminName || '—'} · ${form.adminEmail || '—'}`}</dd>
                   <dt>CSM</dt><dd>{form.csm || 'Unassigned'}</dd>
-                  <dt>Plan</dt><dd>{plan ? (plan.pricing === 'per_student'
+                  <dt>Plan</dt><dd>{plan ? (isPerStudent(plan)
                     ? `${plan.name} · ${fmt.money(plan.per_student || 0)}/student/mo`
                     : `${plan.name} · ${fmt.money(plan.price)}/mo`) : '—'}</dd>
                   <dt>Payment</dt>
                   <dd>
-                    {form.payChoice === 'trial' && `Trial · ${form.trial} days (no payment now)`}
+                    {form.payChoice === 'trial' && `Trial · ${form.trial} days · ends ${trialEndLabel} (no payment now)`}
                     {form.payChoice === 'offline' && 'Offline (approve after payment received)'}
                     {form.payChoice === 'online' && 'Razorpay (collect now, then approve)'}
                   </dd>
@@ -461,14 +535,16 @@ export function OnboardWizard(): React.ReactElement {
                     {form.payChoice === 'trial'
                       ? 'After trial ends / activation'
                       : plan
-                        ? fmt.money(plan.pricing === 'per_student'
+                        ? fmt.money(isPerStudent(plan)
                             ? Math.max(form.studentsCount, plan.min_students || 0) * (plan.per_student || 0)
                             : plan.price) + '/mo on approval'
                         : '—'}
                   </dd>
                 </dl>
                 <div className="row gap10" style={{ padding: '11px 14px', background: 'var(--accent-ghost)', borderRadius: 10, color: 'var(--accent-text)', fontSize: 12.5 }}>
-                  <Icon.info size={15} /> A welcome email will be sent to the admin with steps to set their password.
+                  <Icon.info size={15} /> {branchMode
+                    ? `This branch links to ${branchCustomer?.name ?? 'the customer'} — they manage it from their existing login.`
+                    : 'A welcome email will be sent to the admin with steps to set their password.'}
                 </div>
               </div>
             )}

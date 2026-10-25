@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createClient, setClientStatus, changeClientPlan, deleteClient, increaseSeats, setSeatSettings } from '../clients';
+import { createClient, setClientStatus, changeClientPlan, deleteClient, increaseSeats, setSeatSettings, updateClient } from '../clients';
+import type { UpdateClientProfileBody } from '../clients';
 import { qk } from '../queryKeys';
 import type { CreateClientBody, ClientStatusAction } from '../types';
 
@@ -27,6 +28,17 @@ export function useSetClientStatus(id: string) {
       qc.invalidateQueries({ queryKey: ['invoices', 'list'] });
       qc.invalidateQueries({ queryKey: qk.dashboard() });
       qc.invalidateQueries({ queryKey: qk.onboarding.list() });
+    },
+  });
+}
+
+export function useUpdateClient(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateClientProfileBody) => updateClient(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.clients.detail(id) });
+      qc.invalidateQueries({ queryKey: LIST_KEY });
     },
   });
 }

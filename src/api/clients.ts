@@ -62,6 +62,19 @@ export function changeClientPlan(id: string, plan_id: string): Promise<Client> {
   return request<Client>(`/clients/${id}/change-plan`, { method: 'POST', body: { plan_id } });
 }
 
+/** Editable client profile fields. The backend applies only the fields that are present
+ *  (partial PATCH), so callers send just what changed — e.g. a new contact email/phone. */
+export interface UpdateClientProfileBody {
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+}
+
+/** Update a client's contact details (name / email / phone). PATCH /clients/{id}. */
+export function updateClient(id: string, body: UpdateClientProfileBody): Promise<Client> {
+  return request<Client>(`/clients/${id}`, { method: 'PATCH', body });
+}
+
 /** Hard-delete empty school (no students / teachers / staff). Requires confirm: "DELETE". */
 export function deleteClient(id: string): Promise<void> {
   return request<void>(`/clients/${id}`, { method: 'DELETE', body: { confirm: 'DELETE' } });
