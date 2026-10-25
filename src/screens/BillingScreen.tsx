@@ -22,10 +22,10 @@ export function BillingScreen({ plansOnly }: { plansOnly?: boolean }): React.Rea
   const { can } = useAuth();
 
   const allTabs: TabDef[] = plansOnly
-    ? [{ key: 'plans', label: 'Plans catalog', perm: 'plans.view' }]
+    ? [{ key: 'plans', label: 'Plans Catalog', perm: 'plans.view' }]
     : [
-        { key: 'upgrades', label: 'Upgrade requests', perm: 'billing.view' },
-        { key: 'seats', label: 'Seat requests', perm: 'billing.view' },
+        { key: 'upgrades', label: 'Upgrade Requests', perm: 'billing.view' },
+        { key: 'seats', label: 'Seat Requests', perm: 'billing.view' },
         { key: 'plans', label: 'Plans', perm: 'plans.view' },
         { key: 'subscriptions', label: 'Subscriptions', perm: 'billing.view' },
         { key: 'invoices', label: 'Invoices', perm: 'billing.view' },

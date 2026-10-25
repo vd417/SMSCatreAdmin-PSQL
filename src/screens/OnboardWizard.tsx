@@ -11,6 +11,7 @@ import { isPerStudent } from '../lib/planPricing';
 import { fileToIdProof, ID_PROOF_ACCEPT } from '../api/team';
 import type { ApiError } from '../api/ApiError';
 import type { Plan, CreateClientBody, ClientStatus, Client } from '../api/types';
+import { SCHOOL_BOARDS } from '../api/types';
 import {
   createClientPlanPayment,
   createUpgradeRazorpayOrder,
@@ -23,6 +24,7 @@ type PayChoice = 'trial' | 'offline' | 'online';
 
 type Form = {
   name: string; slug: string; state: string; address: string; size: string; status: ClientStatus;
+  board: string;
   adminName: string; adminEmail: string; adminPhone: string;
   idProofType: '' | 'pan' | 'aadhaar'; idProofUrl: string;
   plan_id: string; trial: number; csm: string; studentsCount: number;
@@ -87,11 +89,14 @@ export function OnboardWizard(): React.ReactElement {
   const [paying, setPaying] = useState(false);
   const [form, setForm] = useState<Form>({
     name: '', slug: '', state: '', address: '', size: '', status: 'trial',
+    board: '',
     adminName: '', adminEmail: '', adminPhone: '', idProofType: '', idProofUrl: '',
     plan_id: plans[0]?.id ?? '', trial: 7, csm: '', studentsCount: 0,
     payChoice: 'trial',
   });
   const [idProofName, setIdProofName] = useState('');
+  // "Other…" board selected → show the free-text name input.
+  const [boardOther, setBoardOther] = useState(false);
   const set = (k: keyof Form, v: string | number) =>
     setForm(d => ({ ...d, [k]: v, ...(k === 'name' ? { slug: String(v).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') } : {}) }));
 
@@ -260,7 +265,7 @@ export function OnboardWizard(): React.ReactElement {
     const selPlan = plans.find(p => p.id === form.plan_id) ?? plans[0];
     const body: CreateClientBody = {
       name: form.name, slug: form.slug, country: form.state, size: form.size,
-      address: form.address, status: 'trial',
+      address: form.address, status: 'trial', board: form.board.trim() || undefined,
       admin_name: form.adminName, admin_email: form.adminEmail, admin_phone: form.adminPhone,
       id_proof_type: form.idProofType || undefined, id_proof_url: form.idProofUrl || undefined,
       plan_id: form.plan_id || plans[0]?.id || '', trial_days: form.payChoice === 'trial' ? form.trial : 0,
@@ -342,6 +347,32 @@ export function OnboardWizard(): React.ReactElement {
                     <select className="select" value={form.size} onChange={e => set('size', e.target.value)}>
                       <option value="">Select…</option>{SIZES.map(c => <option key={c}>{c}</option>)}
                     </select></div>
+                </div>
+                <div className="field">
+                  <label>Board</label>
+                  <select
+                    className="select"
+                    value={boardOther ? 'Other' : form.board}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (v === 'Other') { setBoardOther(true); set('board', ''); }
+                      else { setBoardOther(false); set('board', v); }
+                    }}
+                  >
+                    <option value="">Select…</option>
+                    {SCHOOL_BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+                    <option value="Other">Other…</option>
+                  </select>
+                  {boardOther && (
+                    <input
+                      className="input"
+                      style={{ marginTop: 8 }}
+                      placeholder="Board name (e.g. Maharashtra State Board)"
+                      value={form.board}
+                      onChange={e => set('board', e.target.value)}
+                    />
+                  )}
+                  <span className="hint">Education board this school follows.</span>
                 </div>
                 <Field label="Address" k="address" form={form} set={set} errors={errors} placeholder="Street, area, PIN code" />
               </div>
@@ -517,6 +548,7 @@ export function OnboardWizard(): React.ReactElement {
                 </div>
                 <dl className="dl">
                   <dt>State</dt><dd>{form.state || '—'}</dd>
+                  <dt>Board</dt><dd>{form.board.trim() || '—'}</dd>
                   <dt>Address</dt><dd>{form.address || '—'}</dd>
                   <dt>{branchMode ? 'Branch of' : 'Admin'}</dt>
                   <dd>{branchMode ? `${branchCustomer?.name ?? '—'} · ${form.adminEmail || '—'}` : `${form.adminName || '—'} · ${form.adminEmail || '—'}`}</dd>

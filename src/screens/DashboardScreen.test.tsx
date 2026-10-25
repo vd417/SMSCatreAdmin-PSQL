@@ -22,4 +22,10 @@ describe('DashboardScreen', () => {
     // MRR now shows in both the KPI card and the revenue-card header (matches the design)
     expect(screen.getAllByText(/2,50,000/).length).toBeGreaterThan(0);
   });
+
+  it('renders ARR as MRR × 12', () => {
+    render(<DashboardScreen />);
+    // 250000 × 12 = 3,000,000 → ₹30,00,000 (Indian grouping), in the ARR tile + revenue header.
+    expect(screen.getAllByText(/30,00,000/).length).toBeGreaterThan(0);
+  });
 });

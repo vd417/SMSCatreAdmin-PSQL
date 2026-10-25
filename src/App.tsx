@@ -137,7 +137,10 @@ export function App() {
   };
 
   const roleInfo = ROLES[role];
-  const userLabel = user?.id ?? role;
+  // Account menu identity: show the person's name, then their email (mail id). Fall back
+  // gracefully when /auth/me omits them (older payloads) so nothing renders blank.
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || roleInfo.name;
+  const displayEmail = user?.email?.trim() || user?.id || '';
 
   const renderScreen = () => {
     const perm = ROUTE_PERM[route.name];
@@ -266,17 +269,17 @@ export function App() {
               width={230}
               trigger={
                 <button className="row gap8" style={{ padding: '4px 4px 4px 8px', borderRadius: 9 }}>
-                  <Avatar name={roleInfo.name} size={30} />
+                  <Avatar name={displayName} size={30} />
                   <Icon.chevDown size={14} style={{ color: 'var(--text-3)' }} />
                 </button>
               }
             >
               <div style={{ padding: '8px 10px 10px' }}>
                 <div className="row gap10">
-                  <Avatar name={roleInfo.name} size={34} />
+                  <Avatar name={displayName} size={34} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 650, fontSize: 13 }}>{roleInfo.name}</div>
-                    <div className="tiny muted truncate">{userLabel}</div>
+                    <div style={{ fontWeight: 650, fontSize: 13 }} className="truncate">{displayName}</div>
+                    <div className="tiny muted truncate">{displayEmail}</div>
                   </div>
                 </div>
                 <span className="role-badge" style={{ marginTop: 10, display: 'inline-block', background: roleInfo.color + '22', color: roleInfo.color }}>{roleInfo.name}</span>

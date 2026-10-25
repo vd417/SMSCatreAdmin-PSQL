@@ -73,6 +73,8 @@ export interface UpdateClientProfileBody {
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  /** Education board: 'CBSE' | 'ICSE' | 'State Board' | a custom name. */
+  board?: string;
 }
 
 /** Update a client's profile (name / slug / country / address + contact). PATCH /clients/{id}. */

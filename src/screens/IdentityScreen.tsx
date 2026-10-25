@@ -153,7 +153,7 @@ export function IdentityScreen(): React.ReactElement {
           {([
             { key: 'users', label: 'Users' },
             { key: 'roles', label: 'Roles' },
-            { key: 'matrix', label: 'Access matrix' },
+            { key: 'matrix', label: 'Access Matrix' },
           ] as { key: Tab; label: string }[]).map(t => (
             <button key={t.key} type="button" className={tab === t.key ? 'active' : ''} onClick={() => setTab(t.key)}>
               {t.label}

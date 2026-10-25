@@ -47,6 +47,7 @@ export function DashboardScreen(): React.ReactElement {
                 { label: 'Trials', value: fmt.num(q.data.counts.trial), icon: Icon.zap, tint: 'var(--amber)', bg: 'var(--amber-bg)' },
                 { label: 'Suspended', value: fmt.num(q.data.counts.suspended), icon: Icon.pause, tint: 'var(--red)', bg: 'var(--red-bg)' },
                 { label: 'MRR', value: fmt.money(q.data.mrr), icon: Icon.dollar, tint: 'var(--accent)', bg: 'var(--accent-ghost)' },
+                { label: 'ARR', value: fmt.money(q.data.mrr * 12), icon: Icon.trendUp, tint: 'var(--green)', bg: 'var(--green-bg)' },
                 { label: 'Churn', value: fmt.pct(q.data.churn_pct), icon: Icon.trendDown, tint: 'var(--violet)', bg: 'var(--violet-bg)' },
                 { label: 'Trials ending', value: fmt.num(q.data.trials_ending), icon: Icon.clock, tint: 'var(--amber)', bg: 'var(--amber-bg)' },
               ] as { label: string; value: string; icon: IconComponent; tint: string; bg: string }[]).map(k => (
@@ -63,10 +64,10 @@ export function DashboardScreen(): React.ReactElement {
             <div className="dash-row" style={{ marginBottom: 16 }}>
               <div className="card dash-grow-16">
                 <div className="card-head">
-                  <div className="f1"><h3>Recurring revenue</h3><div className="sub">MRR over the last 12 months</div></div>
+                  <div className="f1"><h3>Recurring revenue</h3><div className="sub">MRR (monthly) over the last 12 months · ARR = MRR × 12</div></div>
                   <div className="row gap8">
                     <span className="mono" style={{ fontSize: 17, fontWeight: 700 }}>{fmt.money(q.data.mrr)}</span>
-                    <span className="muted tiny">{fmt.pct(q.data.churn_pct)} churn</span>
+                    <span className="muted tiny">/mo · {fmt.money(q.data.mrr * 12)}/yr</span>
                   </div>
                 </div>
                 <div className="card-pad">

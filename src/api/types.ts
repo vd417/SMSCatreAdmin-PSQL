@@ -111,6 +111,8 @@ export interface Client {
   seat_increase_mode?: 'auto' | 'manual';
   /** Per-school near-limit alert gap (null = plan/default). */
   seat_alert_threshold?: number | null;
+  /** Education board: 'CBSE' | 'ICSE' | 'State Board' | a custom name. */
+  board?: string | null;
 }
 
 export type ClientStatusAction =
@@ -142,7 +144,12 @@ export interface CreateClientBody {
   id_proof_url?: string;
   /** Exact student count entered at onboarding; drives per-student billing. Omit for flat plans. */
   students_count?: number;
+  /** Education board: 'CBSE' | 'ICSE' | 'State Board' | a custom name. */
+  board?: string;
 }
+
+/** Preset education boards offered at onboarding. "Other" reveals a free-text name. */
+export const SCHOOL_BOARDS = ['CBSE', 'ICSE', 'State Board'] as const;
 
 export type InvoiceStatus = 'paid' | 'open' | 'past_due';
 
