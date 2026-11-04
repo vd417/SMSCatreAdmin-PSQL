@@ -22,6 +22,7 @@ import { CommandSearch } from './components/CommandSearch';
 import { useClients } from './api/hooks/useClients';
 import { ROLES } from './auth/rbac';
 import { parsePath, routeToPath } from './lib/routing';
+import { registerWebPush } from './lib/webPush';
 
 /* ---- nav structure (ported from app.jsx) ---- */
 type NavItem = { key: string; label: string; icon: IconComponent; perm: string; route: string; match?: string[]; color: string };
@@ -85,6 +86,9 @@ function useAutoCollapse(setCollapsed: (v: boolean) => void) {
 
 export function App() {
   const { status, role, can, signOut, user } = useAuth();
+  useEffect(() => {
+    if (status === 'authed') void registerWebPush();
+  }, [status]);
   // Light by default. Key renamed from 'sm_theme', which the old dark default auto-saved for everyone.
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('catre_theme') as Theme) || 'light');
   const [route, setRoute] = useState<Route>(() => parsePath(window.location.pathname));
