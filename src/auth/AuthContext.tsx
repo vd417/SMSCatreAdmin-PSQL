@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { otpRequest, login as apiLogin, me as fetchMe, logout as apiLogout } from '../api/auth';
 import { setOnAuthFailure } from '../api/client';
+import { watchCrmIdle } from './idleSession';
 import { tokenStore } from './tokenStore';
 import { can as canFor } from './rbac';
 import type { Me, Role } from '../api/types';
@@ -54,6 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [finalizeSession]);
 
   const signOut = useCallback(async () => { await apiLogout(); reset(); }, [reset]);
+
+  useEffect(() => {
+    if (status !== 'authed') return;
+    return watchCrmIdle(() => { void signOut(); });
+  }, [status, signOut]);
 
   const role = user?.roles?.[0] ?? null;
   const value: AuthValue = {
