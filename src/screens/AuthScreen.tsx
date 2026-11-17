@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { passwordForgot, passwordReset } from '../api/auth';
 import { Btn, useToast } from '../components';
@@ -21,6 +21,19 @@ export function AuthScreen(): React.ReactElement {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
+  const [resendUntil, setResendUntil] = useState(0);
+  const [resendNow, setResendNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (resendUntil <= Date.now()) return;
+    const id = window.setInterval(() => setResendNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [resendUntil]);
+  const resendLeft = Math.max(0, Math.ceil((resendUntil - resendNow) / 1000));
+  const armResend = () => {
+    const at = Date.now();
+    setResendNow(at);
+    setResendUntil(at + 60_000);
+  };
 
   const goView = (v: View) => {
     setView(v); setErr(''); setNotice('');
@@ -39,6 +52,7 @@ export function AuthScreen(): React.ReactElement {
     e.preventDefault(); setBusy(true); setErr('');
     try {
       await passwordForgot(email.trim());
+      armResend();
       goView('recover-reset');
       toast({ title: 'Code sent', msg: 'Check your email for the 6-digit code.', kind: 'info' });
     } catch (x) {
@@ -66,6 +80,18 @@ export function AuthScreen(): React.ReactElement {
       if (x instanceof ApiError && x.code === 'invalid_code') setErr('That code is incorrect or expired. Request a new code.');
       else if (x instanceof ApiError && x.code === 'weak_password') setErr(`Password must be at least ${MIN_PW} characters.`);
       else setErr(x instanceof ApiError ? x.message : 'Could not set the password. Try again.');
+    } finally { setBusy(false); }
+  };
+
+  const resendCode = async () => {
+    if (busy || resendLeft > 0) return;
+    setBusy(true); setErr('');
+    try {
+      await passwordForgot(email.trim());
+      armResend();
+      toast({ title: 'Code sent', msg: 'Check your email for the new 6-digit code.', kind: 'info' });
+    } catch (x) {
+      setErr(x instanceof ApiError ? x.message : 'Could not send the code. Try again.');
     } finally { setBusy(false); }
   };
 
@@ -193,6 +219,9 @@ export function AuthScreen(): React.ReactElement {
                 {confirmPw.length > 0 && newPw !== confirmPw && <div className="tiny muted">Passwords don't match yet.</div>}
                 {err && <div className="tiny" style={{ color: 'var(--red)' }}>{err}</div>}
                 <Btn variant="primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Set password'}</Btn>
+                <button type="button" className="muted tiny" disabled={busy || resendLeft > 0} onClick={() => { void resendCode(); }}>
+                  {resendLeft > 0 ? `Resend code in ${resendLeft}s` : 'Resend code'}
+                </button>
                 <button type="button" className="muted tiny" onClick={() => goView('recover-identify')}>Use a different email</button>
               </form>
             </>

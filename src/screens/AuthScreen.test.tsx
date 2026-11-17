@@ -162,4 +162,15 @@ describe('AuthScreen', () => {
     expect(screen.getByText(/must be at least 8 characters/i)).toBeInTheDocument();
   });
 
+  it('keeps resend disabled for a minute after the email code is sent', async () => {
+    const forgotSpy = vi.spyOn(authApi, 'passwordForgot').mockResolvedValue({ sent: true });
+    wrap();
+    await userEvent.click(screen.getByRole('button', { name: /forgot password/i }));
+    await userEvent.type(screen.getByLabelText(/^email$/i), 'rohan@catre.io');
+    await userEvent.click(screen.getByRole('button', { name: /send code/i }));
+    const resend = await screen.findByRole('button', { name: /resend code in/i });
+    expect(resend).toBeDisabled();
+    expect(forgotSpy).toHaveBeenCalledTimes(1);
+  });
+
 });
